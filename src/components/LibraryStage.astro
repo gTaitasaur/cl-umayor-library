@@ -1,0 +1,3036 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  entries: CollectionEntry<'libros'>[];
+}
+
+const { entries } = Astro.props;
+
+const renderedBooks = await Promise.all(
+  entries.map(async (entry, index) => {
+    const { Content } = await entry.render();
+    return {
+      index,
+      slug: entry.slug,
+      data: entry.data,
+      Content,
+    };
+  })
+);
+
+const years = Array.from(new Set(renderedBooks.map((b) => b.data.year))).sort((a, b) => a - b);
+const monthCodes = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+
+const booksPayload = renderedBooks.map((b) => {
+  const resolvedCover = b.data.coverImage ?? b.data.cover ?? '/covers/cover-01.svg';
+  const computedThickness =
+    b.data.thickness ?? Math.round(Math.min(82, Math.max(46, 38 + b.data.pages * 0.068)));
+
+  return {
+    index: b.index,
+    slug: b.slug,
+    title: b.data.title,
+    author: b.data.author,
+    year: b.data.year,
+    month: b.data.month,
+    monthCode: (b.data.monthShort ?? monthCodes[b.data.month - 1] ?? 'MES').toUpperCase(),
+    monthName: b.data.monthName,
+    cover: resolvedCover,
+    spineImage: b.data.spineImage ?? null,
+    spineColor: b.data.spineColor,
+    spineTextColor: b.data.spineTextColor,
+    accentColor: b.data.accentColor,
+    thickness: computedThickness,
+    pages: b.data.pages,
+    genre: b.data.genre,
+    rating: b.data.rating ?? '—',
+    creditLine:
+      b.data.creditLine ?? b.data.curatorNote ?? 'Selección oficial del Club de Lectura',
+    publisher: b.data.publisher?.trim() ?? null,
+    publishedYear: b.data.publishedYear ?? null,
+    country: b.data.country ?? null,
+    synopsis: b.data.synopsis,
+  };
+});
+
+// 3 ciclos virtuales garantizan una estantería infinita sin costuras incluso en monitores 4K ultrawide
+const VIRTUAL_COPIES = [0, 1, 2];
+const initialBook = booksPayload[0];
+---
+
+<!-- Filtros SVG globales: grano táctil de papel algodón (sin coste por frame) -->
+<svg class="svg-defs-global" aria-hidden="true" width="0" height="0">
+  <defs>
+    <filter id="paper-tooth-filter" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence
+        type="fractalNoise"
+        baseFrequency="0.82"
+        numOctaves="3"
+        seed="4"
+        stitchTiles="stitch"
+        result="grain"
+      />
+      <feColorMatrix type="saturate" values="0" in="grain" result="monoGrain" />
+      <feComponentTransfer in="monoGrain">
+        <feFuncR type="linear" slope="0.25" intercept="0.05" />
+        <feFuncG type="linear" slope="0.22" intercept="0.04" />
+        <feFuncB type="linear" slope="0.18" intercept="0.03" />
+        <feFuncA type="linear" slope="0.075" intercept="0" />
+      </feComponentTransfer>
+    </filter>
+  </defs>
+</svg>
+
+<div class="stage-root" id="stage-root">
+  <!-- Textura de grano de papel impreso -->
+  <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
+    <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
+  </svg>
+
+  <!-- Marcas de registro editorial en las esquinas -->
+  <div class="corner-mark corner-mark--tl" aria-hidden="true"></div>
+  <div class="corner-mark corner-mark--tr" aria-hidden="true"></div>
+  <div class="corner-mark corner-mark--bl" aria-hidden="true"></div>
+  <div class="corner-mark corner-mark--br" aria-hidden="true"></div>
+
+  <!-- Cabecera Editorial y Pestañas de Año / Mes -->
+  <header class="stage-header">
+    <div class="brand-block">
+      <span class="brand-kicker">COLECCIÓN PERMANENTE</span>
+      <h1 class="brand-title">Club de Lectura</h1>
+    </div>
+
+    <div class="chronology-controls">
+      <nav class="year-nav" aria-label="Temporadas por año">
+        <div class="year-tabs" id="year-tabs">
+          {
+            years.map((yr, idx) => (
+              <button
+                type="button"
+                class="year-tab"
+                data-year={yr}
+                aria-pressed={idx === 0 ? 'true' : 'false'}
+                data-cursor="compact"
+              >
+                <span class="year-tab-label">{yr}</span>
+              </button>
+            ))
+          }
+          <span class="year-active-bar" id="year-active-bar" aria-hidden="true"></span>
+        </div>
+      </nav>
+
+      <nav class="month-strip" aria-label="Meses del año activo">
+        {
+          monthCodes.map((code, mIdx) => (
+            <button
+              type="button"
+              class={`month-tick ${mIdx === 0 ? 'is-active' : ''}`}
+              data-month={mIdx + 1}
+              aria-label={`Ir a mes ${code}`}
+              aria-current={mIdx === 0 ? 'true' : undefined}
+              data-cursor="compact"
+            >
+              <span class="month-tick-bar" aria-hidden="true" />
+              <span class="month-tick-code">{code}</span>
+            </button>
+          ))
+        }
+      </nav>
+    </div>
+
+    <div class="archive-status" aria-live="polite" aria-atomic="true">
+      <div class="folio-counter">
+        <span class="folio-prefix">EJEMPLAR</span>
+        <span class="folio-num-wrap">
+          <span class="mask-slot folio-slot" id="counter-index-slot">
+            <span class="mask-item">01</span>
+          </span>
+          <span class="folio-sep">/</span>
+          <span class="folio-total">{String(booksPayload.length).padStart(2, '0')}</span>
+        </span>
+      </div>
+      <span class="controls-hint">ARRASTRAR · RUEDA · TECLADO ← →</span>
+    </div>
+  </header>
+
+  <!-- Escenario Central 3D: Estantería Horizontal Infinita -->
+  <main class="shelf-stage" id="shelf-stage" aria-label="Estantería interactiva 3D del Club de Lectura">
+    <!-- Sonda invisible para medir variables CSS responsivas con exactitud subpíxel -->
+    <div class="book-size-probe" id="book-size-probe" aria-hidden="true"></div>
+
+    <!-- Línea arquitectónica de apoyo de estantería -->
+    <div class="shelf-horizon-rule" aria-hidden="true"></div>
+
+    <!-- Flechas Laterales de Navegación -->
+    <button
+      type="button"
+      class="nav-arrow nav-arrow--prev"
+      id="btn-prev"
+      aria-label="Libro anterior"
+      data-cursor="compact"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+        <path
+          d="M15 5L8 12L15 19"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+    </button>
+
+    <button
+      type="button"
+      class="nav-arrow nav-arrow--next"
+      id="btn-next"
+      aria-label="Libro siguiente"
+      data-cursor="compact"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+        <path
+          d="M9 5L16 12L9 19"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+    </button>
+
+    <!-- Escena con perspectiva 3D acelerada por GPU -->
+    <div class="shelf-scene" id="shelf-scene">
+      <!-- Sombra proyectada sobre el papel bajo el ejemplar activo -->
+      <div class="active-cast-shadow" id="active-cast-shadow" aria-hidden="true"></div>
+
+      <div class="shelf-track" id="shelf-track">
+        {
+          VIRTUAL_COPIES.map((copyIdx) =>
+            booksPayload.map((book) => {
+              const virtualIndex = copyIdx * booksPayload.length + book.index;
+              const isPrimaryCopy = copyIdx === 0;
+              const authorSurname = book.author.split(' ').slice(-1)[0];
+              return (
+                <div
+                  class="book-slot"
+                  data-virtual-index={virtualIndex}
+                  data-book-index={book.index}
+                  data-thickness={book.thickness}
+                  role={isPrimaryCopy ? 'button' : undefined}
+                  aria-label={
+                    isPrimaryCopy
+                      ? `${book.title}, de ${book.author} (${book.monthName} ${book.year})`
+                      : undefined
+                  }
+                  aria-hidden={isPrimaryCopy ? undefined : 'true'}
+                  tabindex={isPrimaryCopy ? 0 : undefined}
+                  style={`--spine-bg: ${book.spineColor}; --spine-fg: ${book.spineTextColor}; --book-accent: ${book.accentColor};`}
+                >
+                  <span class="book-3d">
+                    {/* 1. Portada Frontal Ilustrada */}
+                    <span class="book-face book-face--front">
+                      <img
+                        class="cover-art-img"
+                        src={book.cover}
+                        alt={isPrimaryCopy ? `Portada de ${book.title}` : ''}
+                        draggable="false"
+                        decoding="async"
+                      />
+                      <span class="cover-hinge-groove" aria-hidden="true" />
+                      <span class="cover-paper-sheen" aria-hidden="true" />
+                    </span>
+
+                    {/* 2. Lomo Físico Encuadernado */}
+                    <span class="book-face book-face--spine">
+                      {book.spineImage ? (
+                        <img
+                          class="spine-custom-img"
+                          src={book.spineImage}
+                          alt=""
+                          draggable="false"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span class="spine-editorial" aria-hidden="true">
+                          <span class="spine-head">
+                            <span class="spine-thumb-frame">
+                              <img
+                                class="spine-thumb-img"
+                                src={book.cover}
+                                alt=""
+                                draggable="false"
+                                decoding="async"
+                              />
+                            </span>
+                            <span class="spine-band" />
+                          </span>
+                          <span class="spine-body">
+                            <span class="spine-title">{book.title}</span>
+                          </span>
+                          <span class="spine-foot">
+                            <span class="spine-author-short">{authorSurname}</span>
+                            <span class="spine-seal">
+                              <span class="spine-month">{book.monthCode}</span>
+                              <span class="spine-year">{String(book.year).slice(-2)}</span>
+                            </span>
+                          </span>
+                        </span>
+                      )}
+                      <span class="spine-cloth-weave" aria-hidden="true" />
+                    </span>
+
+                    {/* 3. Canto Delantero de Páginas (Derecha) */}
+                    <span class="book-face book-face--pages-right" aria-hidden="true" />
+
+                    {/* 4. Canto Superior de Páginas (Cabeza + Cabezada) */}
+                    <span class="book-face book-face--pages-top" aria-hidden="true" />
+
+                    {/* 5. Canto Inferior de Páginas (Pie) */}
+                    <span class="book-face book-face--pages-bottom" aria-hidden="true" />
+
+                    {/* 6. Contraportada en Tela Editorial */}
+                    <span class="book-face book-face--back" aria-hidden="true" />
+                  </span>
+                </div>
+              );
+            })
+          )
+        }
+      </div>
+    </div>
+  </main>
+
+  <!-- Pie Dinámico con Máscaras Independientes y Botón Circular de Acción -->
+  <footer class="stage-footer">
+    <div class="caption-stack" aria-live="polite" aria-atomic="true">
+      <div class="mask-slot caption-slot caption-slot--title" id="caption-title-slot">
+        <span class="mask-item caption-title-text">{initialBook?.title}</span>
+      </div>
+
+      <div class="mask-slot caption-slot caption-slot--subtitle" id="caption-subtitle-slot">
+        <span class="mask-item caption-subtitle-text">
+          {initialBook ? `${initialBook.author.toUpperCase()} · ${initialBook.monthName.toUpperCase()}` : ''}
+        </span>
+      </div>
+
+      <div class="mask-slot caption-slot caption-slot--year" id="caption-year-slot">
+        <span class="mask-item caption-year-text">
+          {initialBook ? `${initialBook.year} · ${initialBook.pages} PÁGS.` : ''}
+        </span>
+      </div>
+    </div>
+
+    <div class="footer-action-wrap">
+      <button
+        type="button"
+        class="action-circle-btn"
+        id="open-ficha-btn"
+        aria-label="Abrir ficha técnica de lectura"
+        data-cursor="compact"
+      >
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18">
+          <path
+            d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v17H6.5A2.5 2.5 0 0 0 4 22.5V5.5Zm16 0A2.5 2.5 0 0 0 17.5 3H12v17h5.5a2.5 2.5 0 0 1 2.5 2.5V5.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+        <span class="action-circle-label">FICHA</span>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<!-- Pliego Desplegable de Ficha Técnica (Hermano de #stage-root para gestión limpia de `inert`) -->
+<div
+  class="ficha-sheet"
+  id="ficha-sheet"
+  role="dialog"
+  aria-labelledby="ficha-book-title"
+  hidden
+>
+  <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
+    <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
+  </svg>
+
+  <div class="ficha-inner">
+    <!-- Barra Superior del Pliego -->
+    <div class="ficha-topbar">
+      <div class="mask-reveal">
+        <div class="mask-reveal-inner ficha-kicker" id="ficha-folio-code">
+          EXPEDIENTE DE LECTURA · Nº 01
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="ficha-close-btn"
+        id="close-ficha-btn"
+        aria-label="Cerrar ficha de lectura"
+        data-cursor="compact"
+      >
+        <span class="mask-reveal">
+          <span class="mask-reveal-inner ficha-close-text">CERRAR [ESC]</span>
+        </span>
+        <span class="ficha-close-circle" aria-hidden="true">
+          <svg viewBox="0 0 20 20" width="14" height="14">
+            <path
+              d="M5 5L15 15M15 5L5 15"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            ></path>
+          </svg>
+        </span>
+      </button>
+    </div>
+
+    <div class="ficha-rule-scale" id="ficha-top-rule" aria-hidden="true"></div>
+
+    <!-- Diseño Editorial a Dos Columnas -->
+    <div class="ficha-columns">
+      <!-- Columna Izquierda: Metadatos, Sinopsis y Notas .md en Máscaras -->
+      <div class="ficha-col-left" id="ficha-scroll-col">
+        <div class="ficha-header-group">
+          <div class="mask-reveal">
+            <div class="mask-reveal-inner ficha-season-tag" id="ficha-season-tag"></div>
+          </div>
+
+          <div class="mask-reveal">
+            <h2 class="mask-reveal-inner ficha-book-title" id="ficha-book-title"></h2>
+          </div>
+
+          <div class="mask-reveal">
+            <p class="mask-reveal-inner ficha-author-line" id="ficha-author-line"></p>
+          </div>
+        </div>
+
+        <div class="ficha-rule-scale" aria-hidden="true"></div>
+
+        <!-- Cuadrícula de Metadatos Editoriales -->
+        <dl class="ficha-meta-grid">
+          <div class="meta-cell">
+            <dt class="mask-reveal">
+              <span class="mask-reveal-inner meta-dt">CICLO MENSUAL</span>
+            </dt>
+            <dd class="mask-reveal">
+              <span class="mask-reveal-inner meta-dd" id="meta-cycle"></span>
+            </dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="mask-reveal">
+              <span class="mask-reveal-inner meta-dt">GÉNERO</span>
+            </dt>
+            <dd class="mask-reveal">
+              <span class="mask-reveal-inner meta-dd" id="meta-genre"></span>
+            </dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="mask-reveal">
+              <span class="mask-reveal-inner meta-dt">EXTENSIÓN</span>
+            </dt>
+            <dd class="mask-reveal">
+              <span class="mask-reveal-inner meta-dd" id="meta-pages"></span>
+            </dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="mask-reveal">
+              <span class="mask-reveal-inner meta-dt">VALORACIÓN DEL CLUB</span>
+            </dt>
+            <dd class="mask-reveal">
+              <span class="mask-reveal-inner meta-dd" id="meta-rating"></span>
+            </dd>
+          </div>
+        </dl>
+
+        <div class="ficha-rule-scale" aria-hidden="true"></div>
+
+        <!-- Tesis / Cita de Curaduría -->
+        <blockquote class="ficha-curator-quote">
+          <span class="quote-vertical-bar" id="ficha-quote-bar" aria-hidden="true"></span>
+          <div id="ficha-quote-lines"></div>
+        </blockquote>
+
+        <!-- Sinopsis línea por línea en máscara -->
+        <section class="ficha-section" aria-labelledby="heading-synopsis">
+          <div class="mask-reveal">
+            <h3 class="mask-reveal-inner ficha-section-heading" id="heading-synopsis">
+              SINOPSIS EDITORIAL
+            </h3>
+          </div>
+          <div class="ficha-synopsis-lines" id="ficha-synopsis-lines"></div>
+        </section>
+
+        <!-- Notas del Archivo Markdown (.md) línea por línea en máscara -->
+        <section class="ficha-section ficha-md-notes" aria-label="Notas de lectura del club">
+          <div id="ficha-markdown-container"></div>
+        </section>
+
+        <!-- Navegación entre meses desde dentro del pliego -->
+        <div class="ficha-sheet-nav">
+          <button
+            type="button"
+            class="sheet-step-btn"
+            id="ficha-prev-book"
+            data-cursor="compact"
+          >
+            <span class="mask-reveal">
+              <span class="mask-reveal-inner">← MES ANTERIOR</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="sheet-step-btn"
+            id="ficha-next-book"
+            data-cursor="compact"
+          >
+            <span class="mask-reveal">
+              <span class="mask-reveal-inner">MES SIGUIENTE →</span>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Revelado de Portada por Mancha de Tinta SVG (7 círculos + feTurbulence + feDisplacementMap) -->
+      <div class="ficha-col-right">
+        <div class="ink-plate-frame">
+          <svg
+            class="ink-reveal-svg"
+            id="ink-reveal-svg"
+            viewBox="0 0 648 900"
+            role="img"
+            aria-label="Ilustración de portada revelada sobre papel"
+          >
+            <defs>
+              {/* color-interpolation-filters="linearRGB" garantiza desplazamiento centrado (media 0.5) sin deriva diagonal */}
+              <filter
+                id="ink-stain-displacement"
+                filterUnits="userSpaceOnUse"
+                x="-180"
+                y="-180"
+                width="1008"
+                height="1260"
+                color-interpolation-filters="linearRGB"
+              >
+                <feTurbulence
+                  id="ink-turbulence"
+                  type="fractalNoise"
+                  baseFrequency="0.014 0.018"
+                  numOctaves="4"
+                  seed="11"
+                  result="fractalPaper"
+                />
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="fractalPaper"
+                  scale="116"
+                  xChannelSelector="R"
+                  yChannelSelector="G"
+                />
+              </filter>
+
+              <mask
+                id="ink-blot-mask"
+                maskUnits="userSpaceOnUse"
+                maskContentUnits="userSpaceOnUse"
+                x="-180"
+                y="-180"
+                width="1008"
+                height="1260"
+              >
+                <rect x="-180" y="-180" width="1008" height="1260" fill="#000000" />
+                <g filter="url(#ink-stain-displacement)" fill="#ffffff">
+                  <circle class="ink-drop" cx="324" cy="450" r="490" data-cx="324" data-cy="450" />
+                  <circle class="ink-drop" cx="155" cy="195" r="385" data-cx="155" data-cy="195" />
+                  <circle class="ink-drop" cx="493" cy="205" r="390" data-cx="493" data-cy="205" />
+                  <circle class="ink-drop" cx="160" cy="705" r="390" data-cx="160" data-cy="705" />
+                  <circle class="ink-drop" cx="488" cy="695" r="395" data-cx="488" data-cy="695" />
+                  <circle class="ink-drop" cx="328" cy="130" r="350" data-cx="328" data-cy="130" />
+                  <circle class="ink-drop" cx="320" cy="770" r="360" data-cx="320" data-cy="770" />
+                </g>
+              </mask>
+            </defs>
+
+            <!-- Sombra impresa sutil del marco editorial -->
+            <rect
+              x="14"
+              y="14"
+              width="620"
+              height="872"
+              fill="none"
+              stroke="rgba(24,22,20,0.1)"
+              stroke-width="1"
+              stroke-dasharray="4 4"
+            />
+
+            <!-- Imagen de la portada enmascarada orgánicamente por las 7 manchas de tinta -->
+            <g mask="url(#ink-blot-mask)">
+              <image
+                id="ficha-ink-image"
+                href={initialBook?.cover ?? ''}
+                x="0"
+                y="0"
+                width="648"
+                height="900"
+                preserveAspectRatio="xMidYMid slice"
+              />
+              <rect
+                x="0"
+                y="0"
+                width="648"
+                height="900"
+                fill="none"
+                stroke="rgba(24,22,20,0.18)"
+                stroke-width="2"
+              />
+            </g>
+          </svg>
+
+          <div class="ink-plate-caption">
+            <div class="mask-reveal">
+              <span class="mask-reveal-inner" id="ficha-plate-caption">
+                EDICIÓN SELECCIONADA · ARCHIVO DE PORTADAS
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Plantillas SSG precompiladas con el cuerpo Markdown de cada archivo .md -->
+<div hidden aria-hidden="true">
+  {
+    renderedBooks.map((BookItem) => (
+      <template data-notes-tpl={BookItem.index}>
+        <BookItem.Content />
+      </template>
+    ))
+  }
+</div>
+
+<!-- Cursor Magnético Personalizado (Anillo de Tinta + Disco Azul Cobalto) -->
+<div class="custom-cursor" id="custom-cursor" aria-hidden="true">
+  <div class="cursor-ring" id="cursor-ring"></div>
+  <div class="cursor-cobalt-disk" id="cursor-cobalt-disk">
+    <span class="cursor-text-stack">
+      <span class="cursor-line-mask">
+        <span class="cursor-line-inner" id="cursor-line-1">ABRIR</span>
+      </span>
+      <span class="cursor-line-sep" aria-hidden="true"></span>
+      <span class="cursor-line-mask">
+        <span class="cursor-line-inner" id="cursor-line-2">FICHA</span>
+      </span>
+    </span>
+  </div>
+</div>
+
+<script
+  is:inline
+  id="books-collection-json"
+  type="application/json"
+  set:html={JSON.stringify(booksPayload)}
+/>
+
+<style>
+  .svg-defs-global {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .stage-root {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: radial-gradient(
+      ellipse 88% 78% at 50% 48%,
+      var(--paper-bg) 0%,
+      #ece5d6 68%,
+      var(--paper-vignette) 100%
+    );
+  }
+
+  .paper-grain-layer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: multiply;
+  }
+
+  /* Marcas de corte de imprenta */
+  .corner-mark {
+    position: fixed;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+    z-index: 3;
+    border-color: var(--rule-strong);
+    border-style: solid;
+    border-width: 0;
+  }
+  .corner-mark--tl {
+    top: 14px;
+    left: 14px;
+    border-top-width: 1px;
+    border-left-width: 1px;
+  }
+  .corner-mark--tr {
+    top: 14px;
+    right: 14px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+  }
+  .corner-mark--bl {
+    bottom: 14px;
+    left: 14px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+  }
+  .corner-mark--br {
+    bottom: 14px;
+    right: 14px;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+  }
+
+  /* ================= CABECERA ================= */
+  .stage-header {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 1rem;
+    padding: clamp(1rem, 2.4dvh, 1.75rem) clamp(1.25rem, 3.5vw, 3rem) 0.5rem;
+  }
+
+  .brand-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .brand-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    color: var(--ink-muted);
+  }
+
+  .brand-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.45rem, 2.2vw, 1.95rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  .chronology-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .year-tabs {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.22rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 999px;
+    background: rgba(247, 243, 234, 0.65);
+  }
+
+  .year-tab {
+    position: relative;
+    z-index: 2;
+    min-inline-size: 64px;
+    min-block-size: 30px;
+    padding: 0.25rem 0.95rem;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+  }
+
+  .year-tab[aria-pressed='true'] {
+    color: var(--paper-sheet);
+  }
+
+  .year-active-bar {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 64px;
+    height: calc(100% - 6px);
+    border-radius: 999px;
+    background: var(--ink);
+    z-index: 1;
+    transform-origin: left center;
+    will-change: transform;
+  }
+
+  .month-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  .month-tick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    min-inline-size: 26px;
+    min-block-size: 26px;
+    padding: 0.1rem 0.2rem;
+    color: var(--ink-muted);
+  }
+
+  .month-tick-bar {
+    width: 1px;
+    height: 6px;
+    background: var(--rule-strong);
+    transform-origin: bottom center;
+    transform: scaleY(1);
+  }
+
+  .month-tick.is-active {
+    color: var(--cobalt);
+  }
+
+  .month-tick.is-active .month-tick-bar {
+    width: 2px;
+    background: var(--cobalt);
+    transform: scaleY(1.65);
+  }
+
+  .month-tick-code {
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
+  }
+
+  .archive-status {
+    justify-self: end;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.22rem;
+  }
+
+  .folio-counter {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+  }
+
+  .folio-prefix {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+  }
+
+  .folio-num-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.2rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .folio-slot {
+    display: inline-grid;
+    min-width: 2ch;
+    text-align: right;
+  }
+
+  .folio-sep,
+  .folio-total {
+    color: var(--ink-muted);
+  }
+
+  .controls-hint {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+  }
+
+  /* ================= ESCENARIO 3D CENTRAL ================= */
+  .shelf-stage {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: pan-y;
+    --cover-h: min(45.5dvh, 392px);
+    --cover-w: calc(var(--cover-h) * 0.72);
+  }
+
+  .book-size-probe {
+    position: absolute;
+    width: var(--cover-w);
+    height: var(--cover-h);
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .shelf-horizon-rule {
+    position: absolute;
+    left: 4vw;
+    right: 4vw;
+    top: calc(50% + var(--cover-h) * 0.5 + 1px);
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--rule-strong) 14%,
+      var(--rule-strong) 86%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 25;
+    width: 46px;
+    height: 46px;
+    min-inline-size: 46px;
+    min-block-size: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-strong);
+    background: rgba(247, 243, 234, 0.86);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+  }
+
+  .nav-arrow--prev {
+    left: clamp(0.75rem, 2.4vw, 2.25rem);
+  }
+
+  .nav-arrow--next {
+    right: clamp(0.75rem, 2.4vw, 2.25rem);
+  }
+
+  .shelf-scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    perspective: 1180px;
+    perspective-origin: 50% 34%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .active-cast-shadow {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + var(--cover-h) * 0.5 - 6px);
+    width: calc(var(--cover-w) * 1.12);
+    height: 44px;
+    margin-left: calc(var(--cover-w) * -0.56);
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(24, 20, 15, 0.3) 0%,
+      rgba(24, 20, 15, 0.12) 50%,
+      transparent 76%
+    );
+    pointer-events: none;
+    will-change: transform;
+  }
+
+  .shelf-track {
+    position: relative;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+  }
+
+  .book-slot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .book-slot:focus-visible {
+    outline: none;
+  }
+
+  .book-slot:focus-visible .book-face--spine,
+  .book-slot:focus-visible .book-face--front {
+    outline: 2px solid var(--cobalt);
+    outline-offset: 3px;
+  }
+
+  .book-3d {
+    display: block;
+    position: relative;
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .book-face {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .book-face--front,
+  .book-face--spine {
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  .book-face--pages-right,
+  .book-face--pages-top,
+  .book-face--pages-bottom,
+  .book-face--back {
+    pointer-events: none;
+  }
+
+  /* 1. Portada Frontal (Tapa dura editorial con ceja y cajo) */
+  .book-face--front {
+    width: var(--w, 282px);
+    height: var(--h, 392px);
+    margin-left: calc(var(--w, 282px) * -0.5);
+    margin-top: calc(var(--h, 392px) * -0.5);
+    transform: translateZ(calc(var(--t, 54px) * 0.5));
+    background: var(--paper-sheet);
+    border-radius: 1px 4px 4px 1px;
+    overflow: hidden;
+    box-shadow:
+      inset 0 0 0 1px rgba(24, 22, 20, 0.16),
+      inset -2px 0 0 rgba(255, 252, 245, 0.45),
+      -1px 0 3px rgba(0, 0, 0, 0.22);
+  }
+
+  .cover-art-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  .cover-hinge-groove {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 18px;
+    background: linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.28) 0%,
+      rgba(255, 255, 255, 0.18) 28%,
+      rgba(0, 0, 0, 0.2) 58%,
+      rgba(255, 255, 255, 0.1) 78%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
+  .cover-paper-sheen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      115deg,
+      rgba(255, 252, 244, 0.2) 0%,
+      rgba(255, 252, 244, 0) 44%,
+      rgba(20, 16, 12, 0.16) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* 2. Lomo Encuadernado en Tela Editorial */
+  .book-face--spine {
+    width: var(--t, 54px);
+    height: var(--h, 392px);
+    margin-left: calc(var(--t, 54px) * -0.5);
+    margin-top: calc(var(--h, 392px) * -0.5);
+    transform: translateX(calc(var(--w, 282px) * -0.5)) rotateY(-90deg);
+    background-color: var(--spine-bg);
+    color: var(--spine-fg);
+    border-radius: 3px;
+    overflow: hidden;
+    filter: brightness(var(--lit, 1));
+    box-shadow:
+      inset 3px 0 5px rgba(255, 252, 245, 0.2),
+      inset 5px 0 0 rgba(255, 252, 245, 0.08),
+      inset -4px 0 7px rgba(0, 0, 0, 0.36),
+      inset -6px 0 0 rgba(0, 0, 0, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .spine-custom-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  .spine-editorial {
+    width: 100%;
+    height: 100%;
+    padding: 13px 4px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .spine-head,
+  .spine-foot {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .spine-thumb-frame {
+    width: min(72%, 42px);
+    aspect-ratio: 648 / 740;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 1px;
+    overflow: hidden;
+    background: var(--paper-sheet);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
+  }
+
+  .spine-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .spine-seal {
+    width: min(82%, 46px);
+    padding: 3px 2px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+
+  .spine-month {
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    line-height: 1.05;
+  }
+
+  .spine-band {
+    display: block;
+    width: min(68%, 38px);
+    height: 1px;
+    background: currentColor;
+    opacity: 0.42;
+  }
+
+  .spine-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    overflow: hidden;
+  }
+
+  .spine-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--font-editorial);
+    font-size: 0.84rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 100%;
+  }
+
+  .spine-author-short {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--font-mono);
+    font-size: 0.52rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.8;
+    max-height: 58px;
+    overflow: hidden;
+  }
+
+  .spine-year {
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.05em;
+    opacity: 0.86;
+  }
+
+  .spine-cloth-weave {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.028) 0px,
+        rgba(255, 255, 255, 0.028) 1px,
+        rgba(0, 0, 0, 0.032) 1px,
+        rgba(0, 0, 0, 0.032) 2px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.018) 0px,
+        rgba(255, 255, 255, 0.018) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    pointer-events: none;
+  }
+
+  /* 3–5. Bloques físicos de cuadernillos cosidos en papel crema (retranqueados bajo las cejas de tapa dura) */
+  .book-face--pages-right {
+    width: calc(var(--t, 54px) - 6px);
+    height: calc(var(--h, 392px) - 8px);
+    margin-left: calc((var(--t, 54px) - 6px) * -0.5);
+    margin-top: calc((var(--h, 392px) - 8px) * -0.5);
+    transform: translateX(calc(var(--w, 282px) * 0.5 - 4px)) rotateY(90deg);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(24, 18, 12, 0.24) 0%,
+        transparent 13%,
+        transparent 87%,
+        rgba(24, 18, 12, 0.26) 100%
+      ),
+      repeating-linear-gradient(
+        90deg,
+        #f2ebdc 0px,
+        #f2ebdc 1.5px,
+        #dfd4be 1.5px,
+        #dfd4be 2.5px,
+        #efe7d6 2.5px,
+        #efe7d6 6.4px,
+        #cabda2 6.4px,
+        #cabda2 7.4px
+      );
+    box-shadow: inset 0 0 8px rgba(30, 22, 12, 0.2);
+  }
+
+  .book-face--pages-top {
+    width: calc(var(--w, 282px) - 5px);
+    height: calc(var(--t, 54px) - 6px);
+    margin-left: calc((var(--w, 282px) - 5px) * -0.5);
+    margin-top: calc((var(--t, 54px) - 6px) * -0.5);
+    transform: translateX(-1.5px) translateY(calc(var(--h, 392px) * -0.5 + 4px)) rotateX(90deg);
+    background:
+      linear-gradient(
+        90deg,
+        var(--book-accent) 0px,
+        var(--book-accent) 5px,
+        #f7f3ea 5px,
+        #f7f3ea 7px,
+        rgba(24, 18, 12, 0.2) 7px,
+        transparent 16px,
+        transparent 72%,
+        rgba(24, 18, 12, 0.18) 100%
+      ),
+      linear-gradient(
+        0deg,
+        rgba(24, 18, 12, 0.22) 0%,
+        transparent 14%,
+        transparent 86%,
+        rgba(24, 18, 12, 0.22) 100%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        #f0e9d9 0px,
+        #f0e9d9 1.5px,
+        #ddd1bb 1.5px,
+        #ddd1bb 2.5px,
+        #ece4d2 2.5px,
+        #ece4d2 6.5px,
+        #c8bba0 6.5px,
+        #c8bba0 7.5px
+      );
+  }
+
+  .book-face--pages-bottom {
+    width: calc(var(--w, 282px) - 5px);
+    height: calc(var(--t, 54px) - 6px);
+    margin-left: calc((var(--w, 282px) - 5px) * -0.5);
+    margin-top: calc((var(--t, 54px) - 6px) * -0.5);
+    transform: translateX(-1.5px) translateY(calc(var(--h, 392px) * 0.5 - 4px)) rotateX(-90deg);
+    background: repeating-linear-gradient(
+      0deg,
+      #e2d8c4 0px,
+      #e2d8c4 2px,
+      #cfc3ac 2px,
+      #cfc3ac 3.5px
+    );
+  }
+
+  /* 6. Contraportada en Tela Editorial (visible en perspectiva lateral hacia el fondo de la estantería) */
+  .book-face--back {
+    width: var(--w, 282px);
+    height: var(--h, 392px);
+    margin-left: calc(var(--w, 282px) * -0.5);
+    margin-top: calc(var(--h, 392px) * -0.5);
+    transform: rotateY(180deg) translateZ(calc(var(--t, 54px) * 0.5));
+    background-color: var(--spine-bg);
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(12, 10, 8, 0.42) 0%,
+        rgba(12, 10, 8, 0.14) 58%,
+        rgba(255, 252, 245, 0.08) 96%,
+        rgba(0, 0, 0, 0.25) 100%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.024) 0px,
+        rgba(255, 255, 255, 0.024) 1px,
+        rgba(0, 0, 0, 0.028) 1px,
+        rgba(0, 0, 0, 0.028) 2px
+      );
+    border-radius: 4px 1px 1px 4px;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 14px rgba(255, 252, 245, 0.03),
+      inset 2px 0 0 rgba(255, 252, 245, 0.14);
+  }
+
+  /* ================= PIE DINÁMICO CON MÁSCARAS ================= */
+  .stage-footer {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.25rem 1.5rem clamp(0.95rem, 2.4dvh, 1.85rem);
+  }
+
+  .caption-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.22rem;
+    max-width: min(92vw, 720px);
+  }
+
+  .mask-slot {
+    position: relative;
+    overflow: hidden;
+    display: inline-grid;
+    align-items: center;
+    justify-items: center;
+  }
+
+  .mask-slot > :global(.mask-item) {
+    grid-area: 1 / 1;
+    display: block;
+    will-change: transform;
+  }
+
+  .caption-slot--title {
+    padding: 0.06em 0.35em;
+  }
+
+  .caption-stack :global(.caption-title-text) {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.5vw, 2.95rem);
+    line-height: 1.06;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .caption-stack :global(.caption-subtitle-text) {
+    font-family: var(--font-mono);
+    font-size: clamp(0.7rem, 1vw, 0.8rem);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+  }
+
+  .caption-stack :global(.caption-year-text) {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    color: var(--cobalt);
+  }
+
+  .footer-action-wrap {
+    margin-top: 0.15rem;
+  }
+
+  .action-circle-btn {
+    width: 54px;
+    height: 54px;
+    min-inline-size: 54px;
+    min-block-size: 54px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    background: var(--paper-sheet);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: 0 4px 14px rgba(24, 20, 15, 0.08);
+    will-change: transform;
+  }
+
+  .action-circle-label {
+    font-family: var(--font-mono);
+    font-size: 0.48rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+  }
+
+  /* ================= PLIEGO DE FICHA TÉCNICA ================= */
+  .ficha-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    z-index: 60;
+    background: var(--paper-sheet);
+    color: var(--ink);
+    overflow: hidden;
+    will-change: clip-path;
+  }
+
+  .ficha-sheet[hidden] {
+    display: none;
+  }
+
+  .ficha-inner {
+    position: relative;
+    z-index: 4;
+    width: 100%;
+    height: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: clamp(1rem, 2.6dvh, 2rem) clamp(1.25rem, 4vw, 3.5rem);
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: 0.9rem;
+  }
+
+  .ficha-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .ficha-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+  }
+
+  .ficha-close-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-block-size: 38px;
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--ink);
+  }
+
+  .ficha-close-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    display: grid;
+    place-items: center;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  .ficha-rule-scale {
+    width: 100%;
+    height: 1px;
+    background: var(--rule-strong);
+    transform-origin: left center;
+    will-change: transform;
+  }
+
+  .ficha-columns {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+    gap: clamp(1.75rem, 4.5vw, 4.5rem);
+    align-items: stretch;
+  }
+
+  .ficha-col-left {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.75rem;
+    padding-bottom: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    user-select: text;
+    -webkit-user-select: text;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+
+  .mask-reveal {
+    overflow: hidden;
+    display: block;
+  }
+
+  .mask-reveal-inner,
+  .ficha-col-left :global(.mask-reveal-inner) {
+    display: block;
+    will-change: transform;
+  }
+
+  .ficha-header-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .ficha-season-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--cobalt);
+  }
+
+  .ficha-book-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.35rem, 4.4vw, 3.85rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    padding-bottom: 0.06em;
+  }
+
+  .ficha-author-line {
+    font-family: var(--font-editorial);
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+    color: var(--ink-soft);
+  }
+
+  .ficha-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.95rem 1.5rem;
+  }
+
+  .meta-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+  }
+
+  .meta-dt {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    color: var(--ink-muted);
+  }
+
+  .meta-dd {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .ficha-curator-quote {
+    position: relative;
+    padding-left: 1.15rem;
+    font-family: var(--font-editorial);
+    font-style: italic;
+    font-size: 1.08rem;
+    line-height: 1.52;
+    color: var(--ink);
+  }
+
+  .quote-vertical-bar {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 2px;
+    background: var(--cobalt);
+    transform-origin: top center;
+    will-change: transform;
+  }
+
+  .ficha-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .ficha-section-heading {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+  }
+
+  .ficha-synopsis-lines :global(.synopsis-sentence) {
+    font-family: var(--font-editorial);
+    font-size: 1.04rem;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    margin-bottom: 0.45rem;
+  }
+
+  /* Estilos tipográficos para las notas compiladas del archivo .md */
+  .ficha-md-notes :global(.md-heading) {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cobalt);
+    margin-top: 0.55rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .ficha-md-notes :global(.md-paragraph) {
+    font-family: var(--font-editorial);
+    font-size: 1rem;
+    line-height: 1.62;
+    color: var(--ink-soft);
+    margin-bottom: 0.55rem;
+  }
+
+  .ficha-md-notes :global(.md-bullet) {
+    position: relative;
+    padding-left: 1rem;
+    font-family: var(--font-editorial);
+    font-size: 0.98rem;
+    line-height: 1.56;
+    color: var(--ink-soft);
+    margin-bottom: 0.45rem;
+  }
+
+  .ficha-md-notes :global(.md-bullet::before) {
+    content: '·';
+    position: absolute;
+    left: 0.15rem;
+    top: 0;
+    font-weight: 700;
+    color: var(--cobalt);
+  }
+
+  .ficha-md-notes :global(strong) {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .ficha-sheet-nav {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .sheet-step-btn {
+    min-block-size: 36px;
+    padding: 0.35rem 0.15rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--ink);
+  }
+
+  .sheet-step-btn:hover {
+    color: var(--cobalt);
+  }
+
+  /* Columna Derecha: Plancha SVG con Mancha de Tinta */
+  .ficha-col-right {
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 1rem;
+  }
+
+  .ink-plate-frame {
+    width: 100%;
+    height: 100%;
+    max-height: min(74dvh, 660px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+  }
+
+  .ink-reveal-svg {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: calc(100% - 1.8rem);
+    aspect-ratio: 648 / 900;
+    display: block;
+    filter: drop-shadow(0 18px 34px rgba(24, 20, 14, 0.14));
+  }
+
+  .ink-drop {
+    transform: scale(0);
+    will-change: transform;
+  }
+
+  .ink-plate-caption {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+    text-align: center;
+  }
+
+  /* ================= CURSOR PERSONALIZADO ================= */
+  .custom-cursor {
+    display: none;
+  }
+
+  @media (pointer: fine) {
+    .custom-cursor {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      z-index: 9999;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    .cursor-ring {
+      position: absolute;
+      left: -18px;
+      top: -18px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.35px solid var(--ink);
+      transform: scale(0);
+      will-change: transform;
+    }
+
+    .cursor-cobalt-disk {
+      position: absolute;
+      left: -49px;
+      top: -49px;
+      width: 98px;
+      height: 98px;
+      border-radius: 50%;
+      background: var(--cobalt);
+      color: var(--paper-sheet);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 26px rgba(27, 63, 168, 0.32);
+      transform: scale(0);
+      will-change: transform;
+    }
+
+    .cursor-text-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      line-height: 1.05;
+    }
+
+    .cursor-line-mask {
+      overflow: hidden;
+      display: block;
+    }
+
+    .cursor-line-inner {
+      display: block;
+      transform: translateY(115%);
+      will-change: transform;
+    }
+
+    .cursor-line-sep {
+      width: 24px;
+      height: 1px;
+      background: rgba(247, 243, 234, 0.55);
+    }
+  }
+
+  /* ================= RESPONSIVE ================= */
+  @media (max-width: 960px) {
+    .stage-header {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+    }
+
+    .chronology-controls {
+      grid-column: 1 / -1;
+      order: 3;
+    }
+
+    .controls-hint {
+      display: none;
+    }
+
+    .shelf-stage {
+      --cover-h: min(38dvh, 300px);
+    }
+
+    .ficha-columns {
+      grid-template-columns: 1fr;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-bottom: 2rem;
+    }
+
+    .ficha-col-left {
+      overflow-y: visible;
+      padding-bottom: 0.5rem;
+      order: 2;
+    }
+
+    .ficha-col-right {
+      order: 1;
+      max-height: 36dvh;
+    }
+
+    .ink-plate-frame {
+      max-height: 34dvh;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .month-strip {
+      max-width: 92vw;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .month-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .shelf-stage {
+      --cover-h: min(34dvh, 244px);
+    }
+
+    .nav-arrow {
+      width: 38px;
+      height: 38px;
+      min-inline-size: 38px;
+      min-block-size: 38px;
+    }
+  }
+</style>
+
+<script>
+  interface BookRecord {
+    index: number;
+    slug: string;
+    title: string;
+    author: string;
+    year: number;
+    month: number;
+    monthCode: string;
+    monthName: string;
+    cover: string;
+    spineImage: string | null;
+    spineColor: string;
+    spineTextColor: string;
+    accentColor: string;
+    thickness: number;
+    pages: number;
+    genre: string;
+    rating: string;
+    creditLine: string;
+    publisher: string | null;
+    publishedYear: number | null;
+    country: string | null;
+    synopsis: string;
+  }
+
+  interface VirtualSlot {
+    el: HTMLElement;
+    book3d: HTMLElement;
+    frontFace: HTMLElement;
+    spineFace: HTMLElement;
+    vIndex: number;
+    bookIndex: number;
+    rawThickness: number;
+    lastVisible: boolean;
+    lastLit: string;
+  }
+
+  const dataNode = document.getElementById('books-collection-json');
+  const books: BookRecord[] = dataNode?.textContent ? JSON.parse(dataNode.textContent) : [];
+  const N = books.length;
+  const COPIES = 3;
+  const M = N * COPIES;
+
+  const stageRoot = document.getElementById('stage-root') as HTMLElement;
+  const shelfStage = document.getElementById('shelf-stage') as HTMLElement;
+  const sizeProbe = document.getElementById('book-size-probe') as HTMLElement;
+  const castShadow = document.getElementById('active-cast-shadow') as HTMLElement;
+
+  const btnPrev = document.getElementById('btn-prev') as HTMLButtonElement;
+  const btnNext = document.getElementById('btn-next') as HTMLButtonElement;
+  const openFichaBtn = document.getElementById('open-ficha-btn') as HTMLButtonElement;
+
+  const yearTabsWrap = document.getElementById('year-tabs') as HTMLElement;
+  const yearActiveBar = document.getElementById('year-active-bar') as HTMLElement;
+  const yearTabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.year-tab'));
+  const monthTickBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.month-tick'));
+
+  const counterIndexSlot = document.getElementById('counter-index-slot') as HTMLElement;
+  const captionTitleSlot = document.getElementById('caption-title-slot') as HTMLElement;
+  const captionSubtitleSlot = document.getElementById('caption-subtitle-slot') as HTMLElement;
+  const captionYearSlot = document.getElementById('caption-year-slot') as HTMLElement;
+
+  // Elementos del Pliego de Ficha Técnica
+  const fichaSheet = document.getElementById('ficha-sheet') as HTMLElement;
+  const closeFichaBtn = document.getElementById('close-ficha-btn') as HTMLButtonElement;
+  const fichaScrollCol = document.getElementById('ficha-scroll-col') as HTMLElement;
+  const fichaFolioCode = document.getElementById('ficha-folio-code') as HTMLElement;
+  const fichaSeasonTag = document.getElementById('ficha-season-tag') as HTMLElement;
+  const fichaBookTitle = document.getElementById('ficha-book-title') as HTMLElement;
+  const fichaAuthorLine = document.getElementById('ficha-author-line') as HTMLElement;
+  const metaCycle = document.getElementById('meta-cycle') as HTMLElement;
+  const metaPages = document.getElementById('meta-pages') as HTMLElement;
+  const metaGenre = document.getElementById('meta-genre') as HTMLElement;
+  const metaRating = document.getElementById('meta-rating') as HTMLElement;
+  const fichaQuoteBar = document.getElementById('ficha-quote-bar') as HTMLElement;
+  const fichaQuoteLines = document.getElementById('ficha-quote-lines') as HTMLElement;
+  const fichaSynopsisLines = document.getElementById('ficha-synopsis-lines') as HTMLElement;
+  const fichaMarkdownContainer = document.getElementById('ficha-markdown-container') as HTMLElement;
+  const fichaPlateCaption = document.getElementById('ficha-plate-caption') as HTMLElement;
+  const fichaPrevBookBtn = document.getElementById('ficha-prev-book') as HTMLButtonElement;
+  const fichaNextBookBtn = document.getElementById('ficha-next-book') as HTMLButtonElement;
+
+  const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
+  const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGImageElement;
+  const inkDrops = Array.from(document.querySelectorAll<SVGCircleElement>('.ink-drop'));
+
+  // Cursor Magnético
+  const customCursor = document.getElementById('custom-cursor') as HTMLElement;
+  const cursorRing = document.getElementById('cursor-ring') as HTMLElement;
+  const cursorCobaltDisk = document.getElementById('cursor-cobalt-disk') as HTMLElement;
+  const cursorLine1 = document.getElementById('cursor-line-1') as HTMLElement;
+  const cursorLine2 = document.getElementById('cursor-line-2') as HTMLElement;
+
+  const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const pointerFineQuery = window.matchMedia('(pointer: fine)');
+  let prefersReducedMotion = reducedMotionQuery.matches;
+  let hasFinePointer = pointerFineQuery.matches;
+
+  if (hasFinePointer) {
+    document.body.classList.add('has-custom-cursor');
+  }
+
+  reducedMotionQuery.addEventListener('change', (e) => {
+    prefersReducedMotion = e.matches;
+  });
+  pointerFineQuery.addEventListener('change', (e) => {
+    hasFinePointer = e.matches;
+    document.body.classList.toggle('has-custom-cursor', hasFinePointer);
+  });
+
+  // Inicializar orígenes explícitos en espacio SVG para los 7 círculos de la máscara de tinta
+  for (const drop of inkDrops) {
+    const cx = drop.dataset.cx ?? '324';
+    const cy = drop.dataset.cy ?? '450';
+    drop.style.transformOrigin = `${cx}px ${cy}px`;
+    drop.style.transform = 'scale(0)';
+  }
+
+  // Construir registro de ranuras 3D virtuales
+  const slotElements = Array.from(document.querySelectorAll<HTMLElement>('.book-slot'));
+  const slots: VirtualSlot[] = slotElements.map((el) => ({
+    el,
+    book3d: el.querySelector('.book-3d') as HTMLElement,
+    frontFace: el.querySelector('.book-face--front') as HTMLElement,
+    spineFace: el.querySelector('.book-face--spine') as HTMLElement,
+    vIndex: Number(el.dataset.virtualIndex ?? 0),
+    bookIndex: Number(el.dataset.bookIndex ?? 0),
+    rawThickness: Number(el.dataset.thickness ?? 54),
+    lastVisible: true,
+    lastLit: '1.00',
+  }));
+
+  // ================= GEOMETRÍA FÍSICA ACUMULADA =================
+  let viewportW = window.innerWidth;
+  let viewportH = window.innerHeight;
+  let coverW = 282;
+  let coverH = 392;
+  let thicknessScale = 1;
+  const slotWidths = new Float64Array(M);
+  const cumCenters = new Float64Array(M);
+  let totalSpanPx = 4200;
+  let avgPitchPx = 62;
+
+  function measureGeometry() {
+    viewportW = window.innerWidth;
+    viewportH = window.innerHeight;
+    const probeRect = sizeProbe.getBoundingClientRect();
+    coverW = probeRect.width > 40 ? probeRect.width : 282;
+    coverH = probeRect.height > 60 ? probeRect.height : 392;
+    thicknessScale = viewportW < 640 ? 0.74 : viewportW < 960 ? 0.86 : 1;
+    const airGap = viewportW < 640 ? 7 : 9;
+
+    let sumCycle = 0;
+    for (let v = 0; v < M; v++) {
+      const slot = slots[v];
+      const scaledT = Math.round(slot.rawThickness * thicknessScale);
+      slotWidths[v] = scaledT + airGap;
+      if (v < N) sumCycle += slotWidths[v];
+      slot.el.style.setProperty('--w', `${coverW.toFixed(1)}px`);
+      slot.el.style.setProperty('--h', `${coverH.toFixed(1)}px`);
+      slot.el.style.setProperty('--t', `${scaledT}px`);
+    }
+
+    cumCenters[0] = 0;
+    for (let v = 1; v < M; v++) {
+      cumCenters[v] = cumCenters[v - 1] + 0.5 * slotWidths[v - 1] + 0.5 * slotWidths[v];
+    }
+
+    totalSpanPx = sumCycle * COPIES;
+    avgPitchPx = sumCycle / Math.max(N, 1);
+    syncYearIndicator(activeBookIndex, false);
+  }
+
+  // ================= ESTADO DEL MOTOR DE FÍSICA Y CURSOR =================
+  // Arrancamos en la copia central (N) para simetría perfecta
+  let currentPos = N;
+  let targetPos = N;
+  let velocity = 0;
+  let activeBookIndex = 0;
+
+  // Arrastre (Drag)
+  let isDragging = false;
+  let activePointerId: number | null = null;
+  let dragStartX = 0;
+  let dragStartPos = 0;
+  let pointerMovedPx = 0;
+  let lastPointerX = 0;
+  let lastPointerTime = 0;
+  let pointerVelocityIdx = 0;
+
+  // Rueda del ratón / trackpad
+  let wheelSnapTimer: number | null = null;
+
+  // Estado Ficha Técnica
+  let isFichaOpen = false;
+  let isFichaAnimating = false;
+  let lastInvokerEl: HTMLElement | null = null;
+
+  // Estado Cursor Magnético e inclinación 3D hacia el puntero
+  let mouseX = viewportW * 0.5;
+  let mouseY = viewportH * 0.5;
+  let cursorX = mouseX;
+  let cursorY = mouseY;
+  let pointerSeen = false;
+
+  type CursorMode = 'default' | 'compact' | 'cover';
+  let cursorMode: CursorMode = 'default';
+  let ringScale = 0;
+  let cobaltScale = 0;
+
+  let targetTiltX = 0;
+  let targetTiltY = 0;
+  let currentTiltX = 0;
+  let currentTiltY = 0;
+
+  // ================= UTILIDADES WEB ANIMATIONS API (SIN OPACITY FADES) =================
+  function swapMaskedSlot(slotEl: HTMLElement, nextText: string, direction: number, delayMs = 0) {
+    const existing = Array.from(slotEl.querySelectorAll<HTMLElement>('.mask-item'));
+    const currentLast = existing[existing.length - 1];
+    if (currentLast && currentLast.textContent?.trim() === nextText.trim()) {
+      return;
+    }
+
+    const dur = prefersReducedMotion ? 210 : 480;
+    const shiftOut = direction >= 0 ? '-118%' : '118%';
+    const shiftIn = direction >= 0 ? '118%' : '-118%';
+
+    for (const oldSpan of existing) {
+      const animOut = oldSpan.animate(
+        [{ transform: 'translateY(0%)' }, { transform: `translateY(${shiftOut})` }],
+        {
+          duration: dur,
+          delay: delayMs,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'forwards',
+        }
+      );
+      animOut.onfinish = () => oldSpan.remove();
+    }
+
+    const incoming = document.createElement('span');
+    incoming.className = currentLast ? currentLast.className : 'mask-item';
+    incoming.textContent = nextText;
+    incoming.style.transform = `translateY(${shiftIn})`;
+    slotEl.appendChild(incoming);
+
+    incoming.animate(
+      [{ transform: `translateY(${shiftIn})` }, { transform: 'translateY(0%)' }],
+      {
+        duration: dur,
+        delay: delayMs,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards',
+      }
+    );
+  }
+
+  function syncYearIndicator(bookIdx: number, animate = true) {
+    const book = books[bookIdx];
+    if (!book) return;
+
+    for (const btn of yearTabBtns) {
+      const yr = Number(btn.dataset.year);
+      const isSelected = yr === book.year;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      if (isSelected) {
+        const wrapRect = yearTabsWrap.getBoundingClientRect();
+        const btnRect = btn.getBoundingClientRect();
+        if (wrapRect.width > 0 && btnRect.width > 0) {
+          const offsetX = btnRect.left - wrapRect.left - 3;
+          const scaleX = btnRect.width / 64;
+          const targetTransform = `translateX(${offsetX.toFixed(1)}px) scaleX(${scaleX.toFixed(4)})`;
+          if (animate && !prefersReducedMotion) {
+            yearActiveBar.animate(
+              [
+                { transform: yearActiveBar.style.transform || targetTransform },
+                { transform: targetTransform },
+              ],
+              {
+                duration: 380,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                fill: 'forwards',
+              }
+            );
+          }
+          yearActiveBar.style.transform = targetTransform;
+        }
+      }
+    }
+
+    for (const tick of monthTickBtns) {
+      const m = Number(tick.dataset.month);
+      const active = m === book.month;
+      tick.classList.toggle('is-active', active);
+      if (active) {
+        tick.setAttribute('aria-current', 'true');
+      } else {
+        tick.removeAttribute('aria-current');
+      }
+    }
+  }
+
+  function updateActiveBookUI(nextBookIdx: number, direction: number) {
+    if (nextBookIdx === activeBookIndex) return;
+    activeBookIndex = nextBookIdx;
+    const book = books[nextBookIdx];
+    if (!book) return;
+
+    swapMaskedSlot(counterIndexSlot, String(nextBookIdx + 1).padStart(2, '0'), direction, 0);
+    swapMaskedSlot(captionTitleSlot, book.title, direction, 0);
+    swapMaskedSlot(
+      captionSubtitleSlot,
+      `${book.author.toUpperCase()} · ${book.monthName.toUpperCase()}`,
+      direction,
+      prefersReducedMotion ? 0 : 40
+    );
+    swapMaskedSlot(
+      captionYearSlot,
+      `${book.year} · ${book.pages} PÁGS.`,
+      direction,
+      prefersReducedMotion ? 0 : 75
+    );
+
+    syncYearIndicator(nextBookIdx, true);
+  }
+
+  function setCursorMode(nextMode: CursorMode) {
+    if (cursorMode === nextMode) return;
+    const prevMode = cursorMode;
+    cursorMode = nextMode;
+
+    if (nextMode === 'cover') {
+      const dur = prefersReducedMotion ? 180 : 340;
+      cursorLine1.animate(
+        [{ transform: 'translateY(115%)' }, { transform: 'translateY(0%)' }],
+        { duration: dur, delay: 45, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+      );
+      cursorLine2.animate(
+        [{ transform: 'translateY(115%)' }, { transform: 'translateY(0%)' }],
+        { duration: dur, delay: 95, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+      );
+    } else if (prevMode === 'cover') {
+      const dur = prefersReducedMotion ? 140 : 220;
+      cursorLine1.animate(
+        [{ transform: 'translateY(0%)' }, { transform: 'translateY(-115%)' }],
+        { duration: dur, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
+      );
+      cursorLine2.animate(
+        [{ transform: 'translateY(0%)' }, { transform: 'translateY(-115%)' }],
+        { duration: dur, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
+      );
+    }
+  }
+
+  // ================= NAVEGACIÓN DE LA ESTANTERÍA =================
+  function stepBy(delta: number) {
+    targetPos = Math.round(targetPos + delta);
+  }
+
+  function jumpToBookIndex(destBookIdx: number) {
+    const currentMod = ((Math.round(targetPos) % N) + N) % N;
+    let diff = destBookIdx - currentMod;
+    if (diff > N / 2) diff -= N;
+    if (diff < -N / 2) diff += N;
+    targetPos = Math.round(targetPos) + diff;
+  }
+
+  function findActiveVirtualSlot(): VirtualSlot {
+    const posMod = ((currentPos % M) + M) % M;
+    let bestSlot = slots[0];
+    let bestDist = Infinity;
+    for (let v = 0; v < M; v++) {
+      const d = Math.abs((((v - posMod) % M) + M + M * 0.5) % M - M * 0.5);
+      if (d < bestDist) {
+        bestDist = d;
+        bestSlot = slots[v];
+      }
+    }
+    return bestSlot;
+  }
+
+  // ================= APERTURA Y CIERRE DE FICHA TÉCNICA =================
+  function splitIntoSentences(text: string): string[] {
+    const matches = text.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g);
+    return matches ? matches.map((s) => s.trim()).filter(Boolean) : [text];
+  }
+
+  function createMaskedLine(text: string, innerClass: string, tag: 'p' | 'div' | 'h3' = 'p') {
+    const outer = document.createElement('div');
+    outer.className = 'mask-reveal';
+    const inner = document.createElement(tag);
+    inner.className = `mask-reveal-inner ${innerClass}`;
+    inner.textContent = text;
+    inner.style.transform = 'translateY(115%)';
+    outer.appendChild(inner);
+    return outer;
+  }
+
+  function populateFichaDOM(bookIdx: number) {
+    const book = books[bookIdx];
+    if (!book) return;
+
+    fichaFolioCode.textContent = `EXPEDIENTE DE LECTURA · Nº ${String(bookIdx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+    fichaSeasonTag.textContent = `TEMPORADA ${book.year} · ${book.monthName.toUpperCase()}`;
+    fichaBookTitle.textContent = book.title;
+    const extraOrigin = [book.country, book.publishedYear].filter(Boolean).join(', ');
+    fichaAuthorLine.textContent = extraOrigin ? `${book.author} — ${extraOrigin}` : `Por ${book.author}`;
+
+    metaCycle.textContent = `${book.monthName} · ${book.year}`;
+    metaPages.textContent = `${book.pages} páginas`;
+    metaGenre.textContent = book.genre;
+    metaRating.textContent = book.publisher ? `${book.rating} · ${book.publisher}` : book.rating;
+    fichaPlateCaption.textContent = `${book.title.toUpperCase()} · [${book.monthCode} · ${book.year}]`;
+
+    // Cita / línea de crédito curatorial en líneas enmascaradas
+    fichaQuoteLines.replaceChildren();
+    for (const sentence of splitIntoSentences(book.creditLine)) {
+      fichaQuoteLines.appendChild(createMaskedLine(sentence, 'quote-line'));
+    }
+
+    // Sinopsis línea por línea en máscaras
+    fichaSynopsisLines.replaceChildren();
+    for (const sentence of splitIntoSentences(book.synopsis)) {
+      fichaSynopsisLines.appendChild(createMaskedLine(sentence, 'synopsis-sentence'));
+    }
+
+    // Clonar contenido Markdown compilado de Astro y envolver cada bloque en su propia máscara
+    fichaMarkdownContainer.replaceChildren();
+    const tpl = document.querySelector<HTMLTemplateElement>(`template[data-notes-tpl="${bookIdx}"]`);
+    if (tpl) {
+      const frag = tpl.content.cloneNode(true) as DocumentFragment;
+      for (const node of Array.from(frag.children)) {
+        const tag = node.tagName.toLowerCase();
+        if (tag === 'ul' || tag === 'ol') {
+          for (const li of Array.from(node.children)) {
+            const outer = document.createElement('div');
+            outer.className = 'mask-reveal';
+            const inner = document.createElement('div');
+            inner.className = 'mask-reveal-inner md-bullet';
+            inner.innerHTML = li.innerHTML;
+            inner.style.transform = 'translateY(115%)';
+            outer.appendChild(inner);
+            fichaMarkdownContainer.appendChild(outer);
+          }
+        } else if (tag.startsWith('h')) {
+          const outer = document.createElement('div');
+          outer.className = 'mask-reveal';
+          const inner = document.createElement('h3');
+          inner.className = 'mask-reveal-inner md-heading';
+          inner.innerHTML = node.innerHTML;
+          inner.style.transform = 'translateY(115%)';
+          outer.appendChild(inner);
+          fichaMarkdownContainer.appendChild(outer);
+        } else {
+          const outer = document.createElement('div');
+          outer.className = 'mask-reveal';
+          const inner = document.createElement('p');
+          inner.className = 'mask-reveal-inner md-paragraph';
+          inner.innerHTML = node.innerHTML;
+          inner.style.transform = 'translateY(115%)';
+          outer.appendChild(inner);
+          fichaMarkdownContainer.appendChild(outer);
+        }
+      }
+    }
+
+    // Semilla única para la mancha de tinta orgánica de este libro + ruta de portada
+    inkTurbulence.setAttribute('seed', String(bookIdx * 13 + 7));
+    fichaInkImage.setAttribute('href', book.cover);
+
+    // Preparar todos los elementos enmascarados antes de animar
+    const allMaskInners = fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner');
+    for (const item of allMaskInners) {
+      item.getAnimations().forEach((a) => a.cancel());
+      item.style.transform = 'translateY(115%)';
+    }
+
+    const rules = fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale');
+    for (const r of rules) {
+      r.getAnimations().forEach((a) => a.cancel());
+      r.style.transform = 'scaleX(0)';
+    }
+
+    fichaQuoteBar.getAnimations().forEach((a) => a.cancel());
+    fichaQuoteBar.style.transform = 'scaleY(0)';
+
+    for (const drop of inkDrops) {
+      drop.getAnimations().forEach((a) => a.cancel());
+      drop.style.transform = 'scale(0)';
+    }
+  }
+
+  function computeTiltedCoverPolygon(): { tilted: string; mid: string; full: string } {
+    const activeSlot = findActiveVirtualSlot();
+    const rect = activeSlot.frontFace.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const cx = rect.width > 20 ? rect.left + rect.width * 0.5 : vw * 0.5;
+    const cy = rect.height > 20 ? rect.top + rect.height * 0.5 : vh * 0.5;
+
+    // Despejar dimensiones reales antes de la rotación de -4.5°
+    const absRad = (4.5 * Math.PI) / 180;
+    const cosA = Math.cos(absRad);
+    const sinA = Math.sin(absRad);
+    const det = cosA * cosA - sinA * sinA;
+    const w = rect.width > 20 ? (rect.width * cosA - rect.height * sinA) / det : coverW;
+    const h = rect.height > 20 ? (rect.height * cosA - rect.width * sinA) / det : coverH;
+
+    const makePoly = (centerX: number, centerY: number, width: number, height: number, deg: number) => {
+      const r = (deg * Math.PI) / 180;
+      const c = Math.cos(r);
+      const s = Math.sin(r);
+      const dxW = (width * 0.5) * c;
+      const dyW = (width * 0.5) * s;
+      const dxH = -(height * 0.5) * s;
+      const dyH = (height * 0.5) * c;
+
+      const p1x = (centerX - dxW - dxH).toFixed(1);
+      const p1y = (centerY - dyW - dyH).toFixed(1);
+      const p2x = (centerX + dxW - dxH).toFixed(1);
+      const p2y = (centerY + dyW - dyH).toFixed(1);
+      const p3x = (centerX + dxW + dxH).toFixed(1);
+      const p3y = (centerY + dyW + dyH).toFixed(1);
+      const p4x = (centerX - dxW + dxH).toFixed(1);
+      const p4y = (centerY - dyW + dyH).toFixed(1);
+      return `polygon(${p1x}px ${p1y}px, ${p2x}px ${p2y}px, ${p3x}px ${p3y}px, ${p4x}px ${p4y}px)`;
+    };
+
+    const tilted = makePoly(cx, cy, w, h, -4.5 + currentTiltY * 0.12);
+    const mid = makePoly(
+      cx + (vw * 0.5 - cx) * 0.55,
+      cy + (vh * 0.5 - cy) * 0.55,
+      w + (vw - w) * 0.58,
+      h + (vh - h) * 0.58,
+      -1.6
+    );
+    const full = `polygon(0px 0px, ${vw}px 0px, ${vw}px ${vh}px, 0px ${vh}px)`;
+    return { tilted, mid, full };
+  }
+
+  function animateFichaContentsIn(baseDelay = 0) {
+    const durLine = prefersReducedMotion ? 240 : 560;
+    const stagger = prefersReducedMotion ? 10 : 28;
+
+    const rules = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale'));
+    rules.forEach((rule, idx) => {
+      rule.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
+        duration: prefersReducedMotion ? 220 : 620,
+        delay: baseDelay + idx * 70,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards',
+      });
+    });
+
+    const closeCircle = closeFichaBtn.querySelector<HTMLElement>('.ficha-close-circle');
+    if (closeCircle) {
+      closeCircle.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
+        duration: prefersReducedMotion ? 200 : 460,
+        delay: baseDelay + 60,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards',
+      });
+    }
+
+    fichaQuoteBar.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], {
+      duration: prefersReducedMotion ? 220 : 540,
+      delay: baseDelay + 180,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      fill: 'forwards',
+    });
+
+    const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
+    allMaskInners.forEach((el, idx) => {
+      el.animate([{ transform: 'translateY(115%)' }, { transform: 'translateY(0%)' }], {
+        duration: durLine,
+        delay: baseDelay + Math.min(idx * stagger, 640),
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards',
+      });
+    });
+
+    // Revelado orgánico de las 7 manchas de tinta SVG sobre el papel
+    inkDrops.forEach((drop, idx) => {
+      drop.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
+        duration: prefersReducedMotion ? 360 : 940 + idx * 105,
+        delay: baseDelay + (prefersReducedMotion ? 40 : 80 + idx * 72),
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        fill: 'forwards',
+      });
+    });
+  }
+
+  function openFicha(invoker?: HTMLElement) {
+    if (isFichaOpen || isFichaAnimating) return;
+    isFichaAnimating = true;
+    isFichaOpen = true;
+    lastInvokerEl = invoker ?? (document.activeElement as HTMLElement | null);
+
+    // Centrar limpiamente el ejemplar activo
+    targetPos = Math.round(currentPos);
+    setCursorMode('default');
+    targetTiltX = 0;
+    targetTiltY = 0;
+
+    populateFichaDOM(activeBookIndex);
+    const { tilted, mid, full } = computeTiltedCoverPolygon();
+
+    fichaSheet.hidden = false;
+    fichaScrollCol.scrollTop = 0;
+    stageRoot.inert = true;
+
+    const sheetDuration = prefersReducedMotion ? 260 : 650;
+    const sheetAnim = fichaSheet.animate(
+      [
+        { clipPath: tilted },
+        { clipPath: mid, offset: 0.45 },
+        { clipPath: full },
+      ],
+      {
+        duration: sheetDuration,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards',
+      }
+    );
+
+    animateFichaContentsIn(prefersReducedMotion ? 90 : 300);
+
+    sheetAnim.onfinish = () => {
+      fichaSheet.style.clipPath = 'none';
+      isFichaAnimating = false;
+      closeFichaBtn.focus({ preventScroll: true });
+    };
+  }
+
+  function closeFicha() {
+    if (!isFichaOpen || isFichaAnimating) return;
+    isFichaAnimating = true;
+
+    const retractDur = prefersReducedMotion ? 150 : 260;
+
+    for (const drop of inkDrops) {
+      drop.animate([{ transform: 'scale(1)' }, { transform: 'scale(0)' }], {
+        duration: retractDur + 40,
+        easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
+        fill: 'forwards',
+      });
+    }
+
+    const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
+    for (const el of allMaskInners) {
+      el.animate([{ transform: 'translateY(0%)' }, { transform: 'translateY(115%)' }], {
+        duration: retractDur,
+        easing: 'cubic-bezier(0.4, 0, 1, 1)',
+        fill: 'forwards',
+      });
+    }
+
+    const { tilted, mid, full } = computeTiltedCoverPolygon();
+    const foldAnim = fichaSheet.animate(
+      [
+        { clipPath: full },
+        { clipPath: mid, offset: 0.55 },
+        { clipPath: tilted },
+      ],
+      {
+        duration: prefersReducedMotion ? 240 : 540,
+        delay: prefersReducedMotion ? 40 : 140,
+        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        fill: 'forwards',
+      }
+    );
+
+    foldAnim.onfinish = () => {
+      fichaSheet.hidden = true;
+      fichaSheet.getAnimations().forEach((a) => a.cancel());
+      fichaSheet.style.clipPath = '';
+      stageRoot.inert = false;
+      isFichaOpen = false;
+      isFichaAnimating = false;
+      if (lastInvokerEl && typeof lastInvokerEl.focus === 'function') {
+        lastInvokerEl.focus({ preventScroll: true });
+      }
+      if (hasFinePointer && pointerSeen) {
+        const hit = document.elementFromPoint(mouseX, mouseY) as HTMLElement | null;
+        const hitSlot = hit?.closest<HTMLElement>('.book-slot');
+        if (hitSlot) {
+          const vIdx = Number(hitSlot.dataset.virtualIndex ?? 0);
+          const posMod = ((currentPos % M) + M) % M;
+          const d = (((vIdx - posMod) % M) + M + M * 0.5) % M - M * 0.5;
+          setCursorMode(Math.abs(d) < 0.42 ? 'cover' : 'compact');
+        }
+      }
+    };
+  }
+
+  function switchBookInsideFicha(delta: number) {
+    if (!isFichaOpen || isFichaAnimating) return;
+    stepBy(delta);
+    const nextIdx = (((Math.round(targetPos) % N) + N) % N);
+    updateActiveBookUI(nextIdx, delta);
+    populateFichaDOM(nextIdx);
+    fichaScrollCol.scrollTop = 0;
+    animateFichaContentsIn(40);
+  }
+
+  // ================= EVENTOS DE INTERACCIÓN =================
+  btnPrev.addEventListener('click', () => stepBy(-1));
+  btnNext.addEventListener('click', () => stepBy(1));
+  openFichaBtn.addEventListener('click', () => openFicha(openFichaBtn));
+  closeFichaBtn.addEventListener('click', () => closeFicha());
+  fichaPrevBookBtn.addEventListener('click', () => switchBookInsideFicha(-1));
+  fichaNextBookBtn.addEventListener('click', () => switchBookInsideFicha(1));
+
+  for (const btn of yearTabBtns) {
+    btn.addEventListener('click', () => {
+      const targetYear = Number(btn.dataset.year);
+      const currentBook = books[activeBookIndex];
+      const preferredMonth = currentBook ? 1 : 1;
+      const found =
+        books.findIndex((b) => b.year === targetYear && b.month === preferredMonth) !== -1
+          ? books.findIndex((b) => b.year === targetYear && b.month === preferredMonth)
+          : books.findIndex((b) => b.year === targetYear);
+      if (found !== -1) jumpToBookIndex(found);
+    });
+  }
+
+  for (const tick of monthTickBtns) {
+    tick.addEventListener('click', () => {
+      const targetMonth = Number(tick.dataset.month);
+      const currentYear = books[activeBookIndex]?.year ?? books[0]?.year;
+      const found = books.findIndex((b) => b.year === currentYear && b.month === targetMonth);
+      if (found !== -1) jumpToBookIndex(found);
+    });
+  }
+
+  // Clic y teclado accesible (Enter / Space) en lomo cerrado o portada central activa
+  function activateSlot(slot: VirtualSlot) {
+    const posMod = ((currentPos % M) + M) % M;
+    const d = (((slot.vIndex - posMod) % M) + M + M * 0.5) % M - M * 0.5;
+    if (Math.abs(d) < 0.38) {
+      openFicha(slot.el);
+    } else {
+      targetPos = Math.round(currentPos + d);
+    }
+  }
+
+  for (const slot of slots) {
+    slot.el.addEventListener('click', (e) => {
+      if (pointerMovedPx > 8) {
+        e.preventDefault();
+        return;
+      }
+      activateSlot(slot);
+    });
+
+    if (slot.el.getAttribute('role') === 'button') {
+      slot.el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          activateSlot(slot);
+        } else if (e.key === ' ') {
+          e.preventDefault();
+        }
+      });
+
+      slot.el.addEventListener('keyup', (e) => {
+        if (e.key === ' ') {
+          e.preventDefault();
+          activateSlot(slot);
+        }
+      });
+
+      slot.el.addEventListener('focus', () => {
+        if (!isDragging && !isFichaOpen && slot.el.matches(':focus-visible')) {
+          jumpToBookIndex(slot.bookIndex);
+        }
+      });
+    }
+  }
+
+  // Arrastre (Ratón y Táctil) en la estantería
+  shelfStage.addEventListener('pointerdown', (e) => {
+    if (isFichaOpen) return;
+    if ((e.target as HTMLElement).closest('.nav-arrow')) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+
+    isDragging = true;
+    activePointerId = e.pointerId;
+    dragStartX = e.clientX;
+    dragStartPos = targetPos;
+    pointerMovedPx = 0;
+    lastPointerX = e.clientX;
+    lastPointerTime = performance.now();
+    pointerVelocityIdx = 0;
+  });
+
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      pointerSeen = true;
+
+      if (isDragging && e.pointerId === activePointerId) {
+        const dx = e.clientX - dragStartX;
+        pointerMovedPx = Math.max(pointerMovedPx, Math.abs(dx));
+
+        const now = performance.now();
+        const dtMs = Math.max(now - lastPointerTime, 4);
+        const stepDx = e.clientX - lastPointerX;
+        const pxPerBook = Math.max(avgPitchPx * 1.65, 68);
+        const instantVel = (-stepDx / pxPerBook) / (dtMs / 1000);
+        pointerVelocityIdx = pointerVelocityIdx * 0.65 + instantVel * 0.35;
+
+        lastPointerX = e.clientX;
+        lastPointerTime = now;
+
+        if (pointerMovedPx > 4) {
+          targetPos = dragStartPos - dx / pxPerBook;
+        }
+      }
+
+      if (!hasFinePointer) return;
+
+      // Detección de estado del cursor e inclinación magnética hacia la portada activa
+      const targetEl = e.target as HTMLElement | null;
+      if (isFichaOpen) {
+        targetTiltX = 0;
+        targetTiltY = 0;
+        setCursorMode(targetEl?.closest('[data-cursor="compact"], button, a') ? 'compact' : 'default');
+        return;
+      }
+
+      if (isDragging && pointerMovedPx > 5) {
+        targetTiltX = 0;
+        targetTiltY = 0;
+        setCursorMode('compact');
+        return;
+      }
+
+      if (targetEl?.closest('[data-cursor="compact"]')) {
+        targetTiltX = 0;
+        targetTiltY = 0;
+        setCursorMode('compact');
+        return;
+      }
+
+      const hoveredSlotEl = targetEl?.closest<HTMLElement>('.book-slot');
+      if (hoveredSlotEl) {
+        const vIdx = Number(hoveredSlotEl.dataset.virtualIndex ?? 0);
+        const posMod = ((currentPos % M) + M) % M;
+        const d = (((vIdx - posMod) % M) + M + M * 0.5) % M - M * 0.5;
+        if (Math.abs(d) < 0.42) {
+          setCursorMode('cover');
+          const frontRect = hoveredSlotEl
+            .querySelector('.book-face--front')
+            ?.getBoundingClientRect();
+          if (frontRect && frontRect.width > 0 && frontRect.height > 0) {
+            const nx = ((e.clientX - (frontRect.left + frontRect.width * 0.5)) / (frontRect.width * 0.5));
+            const ny = ((e.clientY - (frontRect.top + frontRect.height * 0.5)) / (frontRect.height * 0.5));
+            const tiltFactor = prefersReducedMotion ? 0.25 : 1;
+            targetTiltY = Math.max(-1, Math.min(1, nx)) * 9.5 * tiltFactor;
+            targetTiltX = Math.max(-1, Math.min(1, -ny)) * 7.5 * tiltFactor;
+          }
+          return;
+        }
+        targetTiltX = 0;
+        targetTiltY = 0;
+        setCursorMode('compact');
+        return;
+      }
+
+      targetTiltX = 0;
+      targetTiltY = 0;
+      setCursorMode('default');
+    },
+    { passive: true }
+  );
+
+  function finishDrag(e: PointerEvent) {
+    if (!isDragging || e.pointerId !== activePointerId) return;
+    isDragging = false;
+    activePointerId = null;
+
+    if (pointerMovedPx > 6) {
+      const momentum = Math.max(-4.5, Math.min(4.5, pointerVelocityIdx * 0.16));
+      targetPos = Math.round(targetPos + momentum);
+    }
+  }
+
+  window.addEventListener('pointerup', finishDrag);
+  window.addEventListener('pointercancel', finishDrag);
+
+  // Rueda del ratón (scroll vertical u horizontal gobierna la estantería)
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      if (isFichaOpen) return;
+      e.preventDefault();
+      const dominantDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      const normalized = Math.max(-140, Math.min(140, dominantDelta));
+      targetPos += normalized / 210;
+
+      if (wheelSnapTimer !== null) {
+        window.clearTimeout(wheelSnapTimer);
+      }
+      wheelSnapTimer = window.setTimeout(() => {
+        targetPos = Math.round(targetPos);
+      }, 135);
+    },
+    { passive: false }
+  );
+
+  // Teclado: ArrowLeft / ArrowRight, Enter y Escape
+  window.addEventListener('keydown', (e) => {
+    if (isFichaOpen) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeFicha();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        switchBookInsideFicha(-1);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        switchBookInsideFicha(1);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      stepBy(-1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      stepBy(1);
+    } else if (e.key === 'Enter') {
+      const activeEl = document.activeElement as HTMLElement | null;
+      if (
+        !activeEl ||
+        activeEl === document.body ||
+        activeEl.classList.contains('book-slot')
+      ) {
+        e.preventDefault();
+        openFicha(findActiveVirtualSlot().el);
+      }
+    }
+  });
+
+  // Botón de acción circular: respuesta elástica en hover vía WAAPI
+  openFichaBtn.addEventListener('pointerenter', () => {
+    if (prefersReducedMotion) return;
+    openFichaBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.09)' }], {
+      duration: 240,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      fill: 'forwards',
+    });
+  });
+  openFichaBtn.addEventListener('pointerleave', () => {
+    if (prefersReducedMotion) return;
+    openFichaBtn.animate([{ transform: 'scale(1.09)' }, { transform: 'scale(1)' }], {
+      duration: 240,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      fill: 'forwards',
+    });
+  });
+
+  // ================= ÚNICO BUCLE MAESTRO requestAnimationFrame =================
+  let lastFrameTime = performance.now();
+
+  function masterLoop(now: number) {
+    const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.05);
+    lastFrameTime = now;
+
+    // 1. Física de resorte de la estantería
+    const stiffness = isDragging ? 310 : prefersReducedMotion ? 280 : 155;
+    const damping = isDragging ? 32 : prefersReducedMotion ? 34 : 21.5;
+    const prevPos = currentPos;
+
+    const springForce = (targetPos - currentPos) * stiffness - velocity * damping;
+    velocity += springForce * dt;
+    currentPos += velocity * dt;
+
+    if (!isDragging && Math.abs(targetPos - currentPos) < 0.0004 && Math.abs(velocity) < 0.0004) {
+      currentPos = targetPos;
+      velocity = 0;
+    }
+
+    // Detectar cambio de ejemplar activo en el centro exacto
+    const nearestBookIdx = (((Math.round(currentPos) % N) + N) % N);
+    if (nearestBookIdx !== activeBookIndex && !isFichaOpen) {
+      const dir = currentPos >= prevPos ? 1 : -1;
+      updateActiveBookUI(nearestBookIdx, dir);
+    }
+
+    // 2. Suavizado exponencial de la inclinación magnética de la portada activa
+    const tiltLerp = 1 - Math.exp(-14 * dt);
+    currentTiltX += (targetTiltX - currentTiltX) * tiltLerp;
+    currentTiltY += (targetTiltY - currentTiltY) * tiltLerp;
+
+    // 3. Acordeón trigonométrico 3D e iluminación física de lomos
+    const posMod = ((currentPos % M) + M) % M;
+    const i0 = Math.floor(posMod);
+    const frac = posMod - i0;
+    const i1 = (i0 + 1) % M;
+    const stepCenter = 0.5 * slotWidths[i0] + 0.5 * slotWidths[i1];
+    const interpCenterPx = cumCenters[i0] + frac * stepCenter;
+
+    const accordionSpread = coverW * 0.58 + (viewportW < 640 ? 18 : 34);
+    const cullLimitPx = viewportW * 0.65 + coverW;
+    const openRadius = 1.12;
+    let centerOpenFactor = 0;
+
+    for (let v = 0; v < M; v++) {
+      const slot = slots[v];
+      const d = (((v - posMod) % M) + M + M * 0.5) % M - M * 0.5;
+      const absD = Math.abs(d);
+
+      // Distancia lineal exacta considerando el grosor individual de cada libro
+      const rawDx = cumCenters[v] - interpCenterPx;
+      const xLinear =
+        (((rawDx % totalSpanPx) + totalSpanPx + totalSpanPx * 0.5) % totalSpanPx) -
+        totalSpanPx * 0.5;
+
+      // Campana trigonométrica (Hann / coseno alzado) para apertura del libro central
+      const open =
+        absD < openRadius ? 0.5 * (1 + Math.cos((Math.PI * absD) / openRadius)) : 0;
+
+      if (absD < 0.55 && open > centerOpenFactor) {
+        centerOpenFactor = open;
+      }
+
+      // Desplazamiento de acordeón trigonométrico para empujar suavemente a los vecinos
+      const sign = d < 0 ? -1 : 1;
+      const primaryPush =
+        absD === 0
+          ? 0
+          : sign * Math.sin(Math.min(absD, 1.0) * (Math.PI * 0.5)) * accordionSpread;
+      const harmonicRipple =
+        absD === 0
+          ? 0
+          : sign *
+            Math.sin(Math.min(absD, 6.0) * (Math.PI / 6.0)) *
+            (accordionSpread * 0.13) *
+            Math.exp(-absD * 0.22);
+
+      const x = xLinear + primaryPush + harmonicRipple;
+
+      // Descarte (culling) de copias fuera de pantalla para mantener 120fps constantes
+      if (Math.abs(x) > cullLimitPx) {
+        if (slot.lastVisible) {
+          slot.el.style.visibility = 'hidden';
+          slot.lastVisible = false;
+        }
+        continue;
+      }
+      if (!slot.lastVisible) {
+        slot.el.style.visibility = 'visible';
+        slot.lastVisible = true;
+      }
+
+      // Elevación, acercamiento Z, giro 3D de lomo a portada e inclinación editorial de -4.5°
+      const y = -15 * open;
+      const z = (1 - open) * (-coverW * 0.5 - Math.min(absD, 14) * 2.8) + open * 86;
+
+      const neighborLeanZ =
+        sign * Math.sin(Math.min(absD, 3.0) * (Math.PI / 3.0)) * 1.6 * (1 - open);
+
+      const rotY = (1 - open) * 90 + open * (20.5 + currentTiltY);
+      const rotZ = neighborLeanZ + open * (-4.5 + currentTiltY * 0.08);
+      const rotX = (1 - open) * -3.2 + open * (-6.2 + currentTiltX);
+
+      slot.el.style.zIndex = String(Math.round(500 - absD * 10 + open * 300));
+      slot.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, ${z.toFixed(2)}px)`;
+      slot.book3d.style.transform = `rotateZ(${rotZ.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+
+      // Iluminación lambertiana dinámica de lomos + oclusión junto al ejemplar abierto
+      const radY = (rotY * Math.PI) / 180;
+      const normalX = -Math.cos(radY);
+      const normalZ = Math.sin(radY);
+      const lambert = Math.max(0, normalX * -0.28 + normalZ * 0.96);
+      const aoDip = absD > 0.65 && absD < 1.85 ? (1 - Math.abs(absD - 1.15) / 0.7) * 0.14 : 0;
+      const edgeFalloff = Math.min(absD / 16, 1) * 0.12;
+      const brightness = Math.max(0.68, Math.min(1.12, 0.76 + lambert * 0.34 - aoDip - edgeFalloff));
+      const litStr = brightness.toFixed(2);
+      if (litStr !== slot.lastLit) {
+        slot.spineFace.style.setProperty('--lit', litStr);
+        slot.lastLit = litStr;
+      }
+    }
+
+    // Sombra en el papel escalada según la apertura del ejemplar central
+    const shadowScaleX = 0.35 + centerOpenFactor * 0.72;
+    const shadowScaleY = 0.55 + centerOpenFactor * 0.5;
+    castShadow.style.transform = `translate3d(${(currentTiltY * 0.7).toFixed(1)}px, 0, 0) rotate(-4.5deg) scale(${shadowScaleX.toFixed(3)}, ${shadowScaleY.toFixed(3)})`;
+
+    // 4. Cursor personalizado con suavizado exponencial (sin transiciones de opacidad)
+    if (hasFinePointer && pointerSeen) {
+      const cursorAlpha = 1 - Math.exp(-20 * dt);
+      cursorX += (mouseX - cursorX) * cursorAlpha;
+      cursorY += (mouseY - cursorY) * cursorAlpha;
+
+      const desiredRing =
+        cursorMode === 'cover' ? 0 : cursorMode === 'compact' ? (isDragging ? 0.66 : 0.44) : 1;
+      const desiredCobalt = cursorMode === 'cover' ? 1 : 0;
+
+      const morphAlpha = 1 - Math.exp(-16 * dt);
+      ringScale += (desiredRing - ringScale) * morphAlpha;
+      cobaltScale += (desiredCobalt - cobaltScale) * morphAlpha;
+
+      customCursor.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${cursorY.toFixed(2)}px, 0)`;
+      cursorRing.style.transform = `scale(${ringScale.toFixed(3)})`;
+      cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
+    }
+
+    requestAnimationFrame(masterLoop);
+  }
+
+  measureGeometry();
+  document.fonts?.ready.then(() => measureGeometry());
+  const resizeObserver = new ResizeObserver(() => measureGeometry());
+  resizeObserver.observe(document.documentElement);
+  resizeObserver.observe(sizeProbe);
+
+  requestAnimationFrame(masterLoop);
+</script>

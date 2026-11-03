@@ -1,0 +1,21 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import LibraryStage from '../components/LibraryStage.astro';
+
+const allBooks = await getCollection('libros');
+
+const sortedBooks = allBooks.sort((a, b) => {
+  if (a.data.year !== b.data.year) {
+    return a.data.year - b.data.year;
+  }
+  return a.data.month - b.data.month;
+});
+---
+
+<Layout
+  title="Club de Lectura · Archivo Editorial 3D (2025–2026)"
+  description="Colección interactiva en 3D del Club de Lectura organizada por años y meses, con fichas de lectura y archivo editorial."
+>
+  <LibraryStage entries={sortedBooks} />
+</Layout>

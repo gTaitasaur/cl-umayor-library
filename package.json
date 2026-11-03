@@ -1,0 +1,22 @@
+{
+  "name": "club-de-lectura-biblioteca-3d",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "description": "Biblioteca 3D interactiva editorial en Astro (SSG) para Club de Lectura",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.7.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  }
+}
