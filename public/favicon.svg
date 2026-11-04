@@ -1,6 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#F2EDE2"/>
-  <rect x="14" y="10" width="36" height="44" rx="2" fill="#1B3FA8" transform="rotate(-4.5 32 32)"/>
-  <rect x="14" y="10" width="5" height="44" fill="#181614" transform="rotate(-4.5 32 32)"/>
-  <circle cx="34" cy="29" r="8" fill="#F2EDE2" transform="rotate(-4.5 32 32)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Favicon Club de Lectura UM">
+  <!-- Outer Concentric Emblem Rings -->
+  <circle cx="32" cy="32" r="31" fill="#0A717E" />
+  <circle cx="32" cy="32" r="28.5" fill="none" stroke="#B91C3B" stroke-width="2" />
+  <circle cx="32" cy="32" r="26.7" fill="none" stroke="#0A717E" stroke-width="1.6" />
+  <circle cx="32" cy="32" r="25.5" fill="#FFFFFF" />
+
+  <!-- Radiant Gold Sunburst -->
+  <polygon points="47.20,32.00 51.38,34.18 46.82,35.38 50.41,38.44 45.69,38.60 48.51,42.37 43.88,41.48 45.79,45.79 41.48,43.88 42.37,48.51 38.60,45.69 38.44,50.41 35.38,46.82 34.18,51.38 32.00,47.20 29.82,51.38 28.62,46.82 25.56,50.41 25.40,45.69 21.63,48.51 22.52,43.88 18.21,45.79 20.12,41.48 15.49,42.37 18.31,38.60 13.59,38.44 17.18,35.38 12.62,34.18 16.80,32.00 12.62,29.82 17.18,28.62 13.59,25.56 18.31,25.40 15.49,21.63 20.12,22.52 18.21,18.21 22.52,20.12 21.63,15.49 25.40,18.31 25.56,13.59 28.62,17.18 29.82,12.62 32.00,16.80 34.18,12.62 35.38,17.18 38.44,13.59 38.60,18.31 42.37,15.49 41.48,20.12 45.79,18.21 43.88,22.52 48.51,21.63 45.69,25.40 50.41,25.56 46.82,28.62 51.38,29.82" fill="#FAC90A" />
+
+  <!-- Laurel Wreath at Bottom -->
+  <g id="laurel" fill="#0A717E">
+    <!-- Left Laurel -->
+    <path d="M 23 51 C 21 49 19 46 17 43 C 18 43 19 44 20 45 C 18 42 17 39 16 36 C 17 37 18 38 19 39 C 18 36 17 34 16.5 32 C 17.5 33 18.5 34 19 35 C 19 32 19 30 19 28 C 20 29.5 20.5 31 20.5 33 C 21 37 22.5 44 26 49 C 25 50 24 50.5 23 51 Z" />
+    <!-- Right Laurel -->
+    <path d="M 41 51 C 43 49 45 46 47 43 C 46 43 45 44 44 45 C 46 42 47 39 48 36 C 47 37 46 38 45 39 C 46 36 47 34 47.5 32 C 46.5 33 45.5 34 45 35 C 45 32 45 30 45 28 C 44 29.5 43.5 31 43.5 33 C 43 37 41.5 44 38 49 C 39 50 40 50.5 41 51 Z" />
+  </g>
+
+  <!-- Central Open Book -->
+  <g id="book">
+    <!-- Teal Backing Cover -->
+    <rect x="15" y="22" width="34" height="20" rx="1.5" fill="#0A717E" stroke="#1A252C" stroke-width="1.2" />
+
+    <!-- Open Book Pages (Paper White with Dark Border) -->
+    <!-- Left Page -->
+    <path d="M 32 20.5 C 27 19.5 22 20.5 17 21 L 17 38.5 C 22 38 27 37.5 32 39.5 Z" fill="#F4F5F6" stroke="#1A252C" stroke-width="1.2" stroke-linejoin="round" />
+    <!-- Right Page -->
+    <path d="M 32 20.5 C 37 19.5 42 20.5 47 21 L 47 38.5 C 42 38 37 37.5 32 39.5 Z" fill="#F4F5F6" stroke="#1A252C" stroke-width="1.2" stroke-linejoin="round" />
+
+    <!-- Book Spine -->
+    <line x1="32" y1="20.5" x2="32" y2="39.5" stroke="#1A252C" stroke-width="1.4" stroke-linecap="round" />
+
+    <!-- Signature Brand Bookmarks (Crimson Red) -->
+    <!-- Left Bookmark (Lower-middle) -->
+    <rect x="20" y="29" width="6" height="4.5" rx="0.5" fill="#B91C3B" />
+    <!-- Right Bookmark (Upper-middle) -->
+    <rect x="37" y="24" width="6" height="4.5" rx="0.5" fill="#B91C3B" />
+
+    <!-- Text Squiggle Accents (Simplified for small-scale crispness) -->
+    <path d="M 19 24.5 Q 22 24 25 24.5 M 19 26.8 Q 22 26.3 25 26.8 M 20 35.5 Q 24 35 28 35.5" stroke="#1A252C" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.75" />
+    <path d="M 36 31 Q 40 30.5 44 31 M 36 33.5 Q 40 33 44 33.5 M 36 36 Q 40 35.5 44 36" stroke="#1A252C" stroke-width="0.8" stroke-linecap="round" fill="none" opacity="0.75" />
+  </g>
 </svg>
