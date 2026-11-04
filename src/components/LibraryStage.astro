@@ -909,6 +909,7 @@ const initialBook = booksPayload[0];
     right: 3vw;
     top: calc(50% + var(--cover-h) * 0.5);
     height: 2px;
+    z-index: 0;
     background: linear-gradient(
       90deg,
       transparent 0%,
@@ -947,6 +948,7 @@ const initialBook = booksPayload[0];
 
   .shelf-scene {
     position: relative;
+    z-index: 2;
     width: 100%;
     height: 100%;
     perspective: 1200px;
@@ -959,6 +961,7 @@ const initialBook = booksPayload[0];
 
   .active-cast-shadow {
     position: absolute;
+    z-index: 1;
     left: 50%;
     top: calc(50% + var(--cover-h) * 0.5 - 2px);
     width: calc(var(--cover-w) * 1.12);
@@ -977,6 +980,7 @@ const initialBook = booksPayload[0];
 
   .shelf-track {
     position: relative;
+    z-index: 2;
     width: 0;
     height: 0;
     transform-style: preserve-3d;
@@ -1019,6 +1023,11 @@ const initialBook = booksPayload[0];
     top: 0;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    transform-style: preserve-3d;
+    outline: 1px solid transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    box-shadow: 0 0 0.5px rgba(24, 20, 15, 0.12);
   }
 
   .book-face--front,
@@ -1042,9 +1051,10 @@ const initialBook = booksPayload[0];
     margin-top: calc(var(--h, 392px) * -0.5);
     transform: translateZ(calc(var(--t, 54px) * 0.5));
     background: var(--paper-sheet);
-    border-radius: 1px 4px 4px 1px;
+    border-radius: 0 4px 4px 0;
     overflow: hidden;
     box-shadow:
+      0 0 0.5px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(24, 22, 20, 0.16),
       inset -2px 0 0 rgba(255, 252, 245, 0.45),
       -1px 0 3px rgba(0, 0, 0, 0.22);
@@ -1096,16 +1106,27 @@ const initialBook = booksPayload[0];
     transform: translateX(calc(var(--w, 282px) * -0.5)) rotateY(-90deg);
     background-color: var(--spine-bg);
     color: var(--spine-fg);
-    border-radius: 3px;
+    border-radius: 2px;
     overflow: hidden;
-    filter: brightness(var(--lit, 1));
+    outline: 1px solid transparent;
     box-shadow:
+      0 0 1px rgba(0, 0, 0, 0.22),
       inset 3px 0 5px rgba(255, 252, 245, 0.2),
       inset 5px 0 0 rgba(255, 252, 245, 0.08),
       inset -4px 0 7px rgba(0, 0, 0, 0.36),
       inset -6px 0 0 rgba(0, 0, 0, 0.14),
       inset 0 1px 0 rgba(255, 255, 255, 0.2),
       inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .book-face--spine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: var(--spine-light, transparent);
+    z-index: 5;
   }
 
   .spine-custom-img {
@@ -1185,7 +1206,7 @@ const initialBook = booksPayload[0];
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 0;
+    padding: 6px 0;
     overflow: hidden;
   }
 
@@ -1193,12 +1214,11 @@ const initialBook = booksPayload[0];
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-family: var(--font-editorial);
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 500;
     letter-spacing: 0.04em;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: inline-block;
     max-height: 100%;
   }
 
@@ -1211,7 +1231,7 @@ const initialBook = booksPayload[0];
     text-transform: uppercase;
     opacity: 0.8;
     max-height: 58px;
-    overflow: hidden;
+    display: inline-block;
   }
 
   .spine-year {
@@ -1225,19 +1245,26 @@ const initialBook = booksPayload[0];
     position: absolute;
     inset: 0;
     background-image:
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        transparent 15%,
+        transparent 85%,
+        rgba(0, 0, 0, 0.18) 100%
+      ),
       repeating-linear-gradient(
         0deg,
-        rgba(255, 255, 255, 0.028) 0px,
-        rgba(255, 255, 255, 0.028) 1px,
-        rgba(0, 0, 0, 0.032) 1px,
-        rgba(0, 0, 0, 0.032) 2px
+        rgba(255, 255, 255, 0.022) 0px,
+        rgba(255, 255, 255, 0.022) 2px,
+        transparent 2px,
+        transparent 5px
       ),
       repeating-linear-gradient(
         90deg,
-        rgba(255, 255, 255, 0.018) 0px,
-        rgba(255, 255, 255, 0.018) 1px,
-        transparent 1px,
-        transparent 3px
+        rgba(0, 0, 0, 0.025) 0px,
+        rgba(0, 0, 0, 0.025) 2px,
+        transparent 2px,
+        transparent 5px
       );
     pointer-events: none;
   }
@@ -1260,23 +1287,23 @@ const initialBook = booksPayload[0];
       repeating-linear-gradient(
         90deg,
         #f2ebdc 0px,
-        #f2ebdc 1.5px,
-        #dfd4be 1.5px,
-        #dfd4be 2.5px,
-        #efe7d6 2.5px,
-        #efe7d6 6.4px,
-        #cabda2 6.4px,
-        #cabda2 7.4px
+        #f2ebdc 3px,
+        #dfd4be 3px,
+        #dfd4be 5px,
+        #efe7d6 5px,
+        #efe7d6 8px,
+        #cabda2 8px,
+        #cabda2 10px
       );
     box-shadow: inset 0 0 8px rgba(30, 22, 12, 0.2);
   }
 
   .book-face--pages-top {
-    width: calc(var(--w, 282px) - 5px);
+    width: calc(var(--w, 282px) - 8px);
     height: calc(var(--t, 54px) - 6px);
-    margin-left: calc((var(--w, 282px) - 5px) * -0.5);
+    margin-left: calc((var(--w, 282px) - 8px) * -0.5);
     margin-top: calc((var(--t, 54px) - 6px) * -0.5);
-    transform: translateX(-1.5px) translateY(calc(var(--h, 392px) * -0.5 + 4px)) rotateX(90deg);
+    transform: translateX(0px) translateY(calc(var(--h, 392px) * -0.5 + 3px)) rotateX(90deg);
     background:
       linear-gradient(
         90deg,
@@ -1299,22 +1326,23 @@ const initialBook = booksPayload[0];
       repeating-linear-gradient(
         0deg,
         #f0e9d9 0px,
-        #f0e9d9 1.5px,
-        #ddd1bb 1.5px,
-        #ddd1bb 2.5px,
-        #ece4d2 2.5px,
-        #ece4d2 6.5px,
-        #c8bba0 6.5px,
-        #c8bba0 7.5px
+        #f0e9d9 3px,
+        #ddd1bb 3px,
+        #ddd1bb 5px,
+        #ece4d2 5px,
+        #ece4d2 8px,
+        #c8bba0 8px,
+        #c8bba0 10px
       );
+    box-shadow: inset 0 0 6px rgba(24, 18, 12, 0.18);
   }
 
   .book-face--pages-bottom {
-    width: calc(var(--w, 282px) - 5px);
+    width: calc(var(--w, 282px) - 8px);
     height: calc(var(--t, 54px) - 6px);
-    margin-left: calc((var(--w, 282px) - 5px) * -0.5);
+    margin-left: calc((var(--w, 282px) - 8px) * -0.5);
     margin-top: calc((var(--t, 54px) - 6px) * -0.5);
-    transform: translateX(-1.5px) translateY(calc(var(--h, 392px) * 0.5 - 4px)) rotateX(-90deg);
+    transform: translateX(0px) translateY(calc(var(--h, 392px) * 0.5 - 3px)) rotateX(-90deg);
     background:
       linear-gradient(
         90deg,
@@ -1337,13 +1365,13 @@ const initialBook = booksPayload[0];
       repeating-linear-gradient(
         0deg,
         #ebe3d2 0px,
-        #ebe3d2 1.5px,
-        #d8cca8 1.5px,
-        #d8cca8 2.5px,
-        #e6ddca 2.5px,
-        #e6ddca 6.5px,
-        #c4b69c 6.5px,
-        #c4b69c 7.5px
+        #ebe3d2 3px,
+        #d8cca8 3px,
+        #d8cca8 5px,
+        #e6ddca 5px,
+        #e6ddca 8px,
+        #c4b69c 8px,
+        #c4b69c 10px
       );
     box-shadow: inset 0 0 8px rgba(24, 18, 12, 0.26);
   }
@@ -1366,13 +1394,14 @@ const initialBook = booksPayload[0];
       ),
       repeating-linear-gradient(
         0deg,
-        rgba(255, 255, 255, 0.024) 0px,
-        rgba(255, 255, 255, 0.024) 1px,
-        rgba(0, 0, 0, 0.028) 1px,
-        rgba(0, 0, 0, 0.028) 2px
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 2px,
+        transparent 2px,
+        transparent 6px
       );
-    border-radius: 4px 1px 1px 4px;
+    border-radius: 4px 0 0 4px;
     box-shadow:
+      0 0 0.5px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(0, 0, 0, 0.28),
       inset 0 0 0 14px rgba(255, 252, 245, 0.03),
       inset 2px 0 0 rgba(255, 252, 245, 0.14);
@@ -1829,6 +1858,7 @@ const initialBook = booksPayload[0];
       color: var(--paper-sheet);
       display: grid;
       place-items: center;
+      overflow: hidden;
       box-shadow: 0 10px 26px rgba(27, 63, 168, 0.32);
       transform: scale(0);
       will-change: transform;
@@ -3019,7 +3049,13 @@ const initialBook = booksPayload[0];
       const brightness = Math.max(0.68, Math.min(1.12, 0.76 + lambert * 0.34 - aoDip - edgeFalloff));
       const litStr = brightness.toFixed(2);
       if (litStr !== slot.lastLit) {
-        slot.spineFace.style.setProperty('--lit', litStr);
+        if (brightness < 1) {
+          const shade = ((1 - brightness) * 0.78).toFixed(3);
+          slot.spineFace.style.setProperty('--spine-light', `rgba(0, 0, 0, ${shade})`);
+        } else {
+          const tint = ((brightness - 1) * 0.72).toFixed(3);
+          slot.spineFace.style.setProperty('--spine-light', `rgba(255, 255, 255, ${tint})`);
+        }
         slot.lastLit = litStr;
       }
     }
