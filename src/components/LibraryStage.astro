@@ -649,6 +649,8 @@ const initialBook = booksPayload[0];
 
   .stage-root {
     position: relative;
+    z-index: 1;
+    isolation: isolate;
     width: 100%;
     height: 100dvh;
     overflow: hidden;
@@ -663,18 +665,18 @@ const initialBook = booksPayload[0];
   }
 
   .paper-grain-layer {
-    position: fixed;
+    position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 2;
+    z-index: 0;
     mix-blend-mode: multiply;
   }
 
   /* Marcas de corte de imprenta */
   .corner-mark {
-    position: fixed;
+    position: absolute;
     width: 14px;
     height: 14px;
     pointer-events: none;
@@ -1504,6 +1506,7 @@ const initialBook = booksPayload[0];
     width: 100%;
     height: 100dvh;
     z-index: 60;
+    isolation: isolate;
     background: var(--paper-sheet);
     color: var(--ink);
     overflow: hidden;
