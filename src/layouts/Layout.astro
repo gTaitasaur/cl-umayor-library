@@ -37,18 +37,36 @@ const {
 
 <style is:global>
   :root {
+    /* 1. Superficie y textura de papel de algodón (Munken / Fabriano) */
     --paper-bg: #f2ede2;
     --paper-vignette: #e4dccb;
     --paper-sheet: #f7f3ea;
     --paper-page-edge: #ebe3d1;
+
+    /* 2. Tintas tipográficas */
     --ink: #181614;
-    --ink-soft: #3b3630;
-    --ink-muted: #6c6459;
-    --rule: rgba(24, 22, 20, 0.14);
-    --rule-strong: rgba(24, 22, 20, 0.28);
-    --cobalt: #1b3fa8;
-    --cobalt-deep: #143186;
-    --vermilion: #b63b2a;
+    --ink-soft: #2e3b3e;
+    --ink-muted: #36545f; /* Apagado Oscuro: foliado, subtítulos técnicos y notas */
+
+    /* 3. Filetes editoriales con sutil tinte de imprenta */
+    --rule: rgba(54, 84, 95, 0.14);
+    --rule-strong: rgba(12, 116, 124, 0.26);
+
+    /* 4. Identidad Institucional SIBUM (Paleta extraída del logo) */
+    --brand-petrol: #0c747c;       /* Vibrante Oscuro: acento principal de interacción */
+    --brand-petrol-deep: #085258;  /* Sombra y hover profundo */
+    --brand-petrol-slate: #36545f; /* Apagado Oscuro: foliado, subtítulos y metadatos */
+    --brand-petrol-soft: #6d9a9f;  /* Apagado: reglas y bordes intermedios */
+    --brand-petrol-mist: #9dc1c5;  /* Apagado Claro: fondos pasivos y selección */
+
+    --brand-gold: #fbcb0a;         /* Vibrante: sol central, pan de oro y sellos */
+    --brand-gold-warm: #e7cd52;    /* Vibrante Claro: iluminación editorial y badges */
+    --brand-crimson: #b91c3b;      /* Rojo carmesí del logo: avisos y cintas marcapáginas */
+
+    /* Tokens semánticos de compatibilidad */
+    --cobalt: var(--brand-petrol);
+    --cobalt-deep: var(--brand-petrol-deep);
+    --vermilion: var(--brand-crimson);
 
     --font-display: 'Instrument Serif', Georgia, serif;
     --font-editorial: 'Newsreader', Georgia, serif;

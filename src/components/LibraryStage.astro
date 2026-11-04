@@ -7,17 +7,11 @@ interface Props {
 
 const { entries } = Astro.props;
 
-const renderedBooks = await Promise.all(
-  entries.map(async (entry, index) => {
-    const { Content } = await entry.render();
-    return {
-      index,
-      slug: entry.slug,
-      data: entry.data,
-      Content,
-    };
-  })
-);
+const renderedBooks = entries.map((entry, index) => ({
+  index,
+  slug: entry.slug,
+  data: entry.data,
+}));
 
 const years = Array.from(new Set(renderedBooks.map((b) => b.data.year))).sort((a, b) => a - b);
 const monthCodes = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
@@ -45,8 +39,6 @@ const booksPayload = renderedBooks.map((b) => {
     pages: b.data.pages,
     genre: b.data.genre,
     rating: b.data.rating ?? '—',
-    creditLine:
-      b.data.creditLine ?? b.data.curatorNote ?? 'Selección oficial del Club de Lectura',
     publisher: b.data.publisher?.trim() ?? null,
     publishedYear: b.data.publishedYear ?? null,
     country: b.data.country ?? null,
@@ -97,8 +89,21 @@ const initialBook = booksPayload[0];
   <!-- Cabecera Editorial y Pestañas de Año / Mes -->
   <header class="stage-header">
     <div class="brand-block">
-      <span class="brand-kicker">COLECCIÓN PERMANENTE</span>
-      <h1 class="brand-title">Club de Lectura</h1>
+      <a href="/" class="brand-link" aria-label="Club de Lectura UM, Temuco">
+        <img
+          src="/logo.svg"
+          alt="Emblema Club de Lectura UM"
+          class="brand-logo"
+          width="44"
+          height="44"
+          loading="eager"
+          decoding="async"
+        />
+        <div class="brand-text-stack">
+          <h1 class="brand-title">Club de Lectura UM</h1>
+          <span class="brand-kicker">TEMUCO</span>
+        </div>
+      </a>
     </div>
 
     <div class="chronology-controls">
@@ -142,7 +147,7 @@ const initialBook = booksPayload[0];
 
     <div class="archive-status" aria-live="polite" aria-atomic="true">
       <div class="folio-counter">
-        <span class="folio-prefix">EJEMPLAR</span>
+        <span class="folio-prefix">TÍTULO</span>
         <span class="folio-num-wrap">
           <span class="mask-slot folio-slot" id="counter-index-slot">
             <span class="mask-item">01</span>
@@ -213,7 +218,6 @@ const initialBook = booksPayload[0];
             booksPayload.map((book) => {
               const virtualIndex = copyIdx * booksPayload.length + book.index;
               const isPrimaryCopy = copyIdx === 0;
-              const authorSurname = book.author.split(' ').slice(-1)[0];
               return (
                 <div
                   class="book-slot"
@@ -272,10 +276,17 @@ const initialBook = booksPayload[0];
                             <span class="spine-title">{book.title}</span>
                           </span>
                           <span class="spine-foot">
-                            <span class="spine-author-short">{authorSurname}</span>
                             <span class="spine-seal">
-                              <span class="spine-month">{book.monthCode}</span>
-                              <span class="spine-year">{String(book.year).slice(-2)}</span>
+                              <img
+                                class="spine-seal-logo"
+                                src="/logo.svg"
+                                alt=""
+                                width="20"
+                                height="20"
+                                draggable="false"
+                                decoding="async"
+                              />
+                              <span class="spine-seal-num">{book.index + 1}</span>
                             </span>
                           </span>
                         </span>
@@ -321,7 +332,17 @@ const initialBook = booksPayload[0];
                           />
                         ) : (
                           <span class="refl-spine-editorial">
-                            <span class="refl-spine-seal" />
+                            <span class="refl-spine-seal">
+                              <img
+                                class="refl-spine-logo"
+                                src="/logo.svg"
+                                alt=""
+                                width="14"
+                                height="14"
+                                draggable="false"
+                                decoding="async"
+                              />
+                            </span>
                           </span>
                         )}
                         <span class="refl-spine-cloth" />
@@ -346,13 +367,13 @@ const initialBook = booksPayload[0];
 
       <div class="mask-slot caption-slot caption-slot--subtitle" id="caption-subtitle-slot">
         <span class="mask-item caption-subtitle-text">
-          {initialBook ? `${initialBook.author.toUpperCase()} · ${initialBook.monthName.toUpperCase()}` : ''}
+          {initialBook ? `${initialBook.author.toUpperCase()}${initialBook.publishedYear ? ` · ${initialBook.publishedYear}` : ''}` : ''}
         </span>
       </div>
 
       <div class="mask-slot caption-slot caption-slot--year" id="caption-year-slot">
         <span class="mask-item caption-year-text">
-          {initialBook ? `${initialBook.year} · ${initialBook.pages} PÁGS.` : ''}
+          {initialBook ? `${initialBook.monthName.toUpperCase()} ${initialBook.year} · ${initialBook.pages} PÁGS.` : ''}
         </span>
       </div>
     </div>
@@ -397,7 +418,7 @@ const initialBook = booksPayload[0];
     <div class="ficha-topbar">
       <div class="mask-reveal">
         <div class="mask-reveal-inner ficha-kicker" id="ficha-folio-code">
-          EXPEDIENTE DE LECTURA · Nº 01
+          REGISTRO DE LECTURA · Nº 01
         </div>
       </div>
 
@@ -450,7 +471,7 @@ const initialBook = booksPayload[0];
         <dl class="ficha-meta-grid">
           <div class="meta-cell">
             <dt class="mask-reveal">
-              <span class="mask-reveal-inner meta-dt">CICLO MENSUAL</span>
+              <span class="mask-reveal-inner meta-dt">MES DE LECTURA</span>
             </dt>
             <dd class="mask-reveal">
               <span class="mask-reveal-inner meta-dd" id="meta-cycle"></span>
@@ -458,7 +479,15 @@ const initialBook = booksPayload[0];
           </div>
           <div class="meta-cell">
             <dt class="mask-reveal">
-              <span class="mask-reveal-inner meta-dt">GÉNERO</span>
+              <span class="mask-reveal-inner meta-dt">FECHA DE PUBLICACIÓN</span>
+            </dt>
+            <dd class="mask-reveal">
+              <span class="mask-reveal-inner meta-dd" id="meta-published"></span>
+            </dd>
+          </div>
+          <div class="meta-cell">
+            <dt class="mask-reveal">
+              <span class="mask-reveal-inner meta-dt">GÉNERO / EXTENSIÓN</span>
             </dt>
             <dd class="mask-reveal">
               <span class="mask-reveal-inner meta-dd" id="meta-genre"></span>
@@ -466,15 +495,7 @@ const initialBook = booksPayload[0];
           </div>
           <div class="meta-cell">
             <dt class="mask-reveal">
-              <span class="mask-reveal-inner meta-dt">EXTENSIÓN</span>
-            </dt>
-            <dd class="mask-reveal">
-              <span class="mask-reveal-inner meta-dd" id="meta-pages"></span>
-            </dd>
-          </div>
-          <div class="meta-cell">
-            <dt class="mask-reveal">
-              <span class="mask-reveal-inner meta-dt">VALORACIÓN DEL CLUB</span>
+              <span class="mask-reveal-inner meta-dt">VALORACIÓN</span>
             </dt>
             <dd class="mask-reveal">
               <span class="mask-reveal-inner meta-dd" id="meta-rating"></span>
@@ -484,25 +505,134 @@ const initialBook = booksPayload[0];
 
         <div class="ficha-rule-scale" aria-hidden="true"></div>
 
-        <!-- Tesis / Cita de Curaduría -->
-        <blockquote class="ficha-curator-quote">
-          <span class="quote-vertical-bar" id="ficha-quote-bar" aria-hidden="true"></span>
-          <div id="ficha-quote-lines"></div>
-        </blockquote>
-
         <!-- Sinopsis línea por línea en máscara -->
         <section class="ficha-section" aria-labelledby="heading-synopsis">
           <div class="mask-reveal">
             <h3 class="mask-reveal-inner ficha-section-heading" id="heading-synopsis">
-              SINOPSIS EDITORIAL
+              SINOPSIS
             </h3>
           </div>
           <div class="ficha-synopsis-lines" id="ficha-synopsis-lines"></div>
         </section>
 
-        <!-- Notas del Archivo Markdown (.md) línea por línea en máscara -->
-        <section class="ficha-section ficha-md-notes" aria-label="Notas de lectura del club">
-          <div id="ficha-markdown-container"></div>
+        <!-- Sección de Opiniones y Calificación de los Miembros del Club -->
+        <section class="ficha-section ficha-reviews-section" aria-label="Opinión de Lectores">
+          <!-- Formulario Editorial Compacto para registrar comentario y calificación -->
+          <form class="review-form" id="review-form" novalidate>
+            <div class="review-form-card">
+              <div class="review-form-header">
+                <span class="review-form-title">DEJA UN COMENTARIO</span>
+              </div>
+
+              <!-- Fila: Nombre y Correo -->
+              <div class="review-form-row">
+                <div class="review-field field-name">
+                  <label for="review-author-name" class="review-label">
+                    Nombre <span class="required-indicator" aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="review-author-name"
+                    name="name"
+                    class="review-input"
+                    required
+                    maxlength="80"
+                    placeholder="Tu nombre (obligatorio)"
+                    autocomplete="name"
+                  />
+                  <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre.</span>
+                </div>
+
+                <div class="review-field field-email">
+                  <label for="review-author-email" class="review-label">
+                    Correo <span class="optional-tag">(opcional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="review-author-email"
+                    name="email"
+                    class="review-input"
+                    maxlength="120"
+                    placeholder="correo@mayor.cl"
+                    autocomplete="email"
+                  />
+                </div>
+              </div>
+
+              <!-- Fila Dedicada: Calificación en Estrellas 1 al 5 -->
+              <div class="review-field field-rating">
+                <fieldset class="rating-fieldset">
+                  <legend class="review-label">
+                    Calificación <span class="required-indicator" aria-hidden="true">*</span>
+                  </legend>
+                  <div
+                    class="star-rating-control"
+                    id="star-rating-control"
+                    role="radiogroup"
+                    aria-label="Calificación de 1 a 5 estrellas"
+                  >
+                    {[1, 2, 3, 4, 5].map((val) => (
+                      <label class="star-rating-label" data-value={val} title={`${val} de 5 estrellas`}>
+                        <input
+                          type="radio"
+                          name="rating"
+                          value={val}
+                          class="star-radio-input"
+                          required
+                          checked={val === 5}
+                        />
+                        <svg class="star-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                          <path
+                            fill="currentColor"
+                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                          />
+                        </svg>
+                        <span class="visually-hidden">{val} {val === 1 ? 'estrella' : 'estrellas'}</span>
+                      </label>
+                    ))}
+                    <span class="star-rating-desc" id="star-rating-desc" aria-live="polite">Me encantó!</span>
+                  </div>
+                </fieldset>
+              </div>
+
+              <!-- Comentario -->
+              <div class="review-field field-comment">
+                <label for="review-comment-text" class="review-label">
+                  Comentario u opinión
+                </label>
+                <textarea
+                  id="review-comment-text"
+                  name="comment"
+                  class="review-textarea"
+                  rows="2"
+                  maxlength="800"
+                  placeholder="Comparte tus impresiones de lectura o claves de discusión..."
+                ></textarea>
+              </div>
+
+              <!-- Botón y Estado -->
+              <div class="review-form-actions">
+                <button type="submit" class="review-submit-btn" id="review-submit-btn">
+                  <span class="submit-btn-text">Publicar Comentario</span>
+                  <svg class="submit-btn-arrow" viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+                  </svg>
+                </button>
+                <span class="review-form-feedback" id="review-form-feedback" aria-live="polite"></span>
+              </div>
+            </div>
+          </form>
+
+          <!-- Bitácora de Reseñas de los Miembros -->
+          <div class="reviews-catalog">
+            <div class="reviews-catalog-header">
+              <span class="reviews-catalog-title">OPINIÓN DE LECTORES</span>
+              <span class="reviews-catalog-count" id="reviews-catalog-count">0 registros</span>
+            </div>
+            <div class="reviews-stack" id="reviews-stack" role="feed" aria-busy="false">
+              <!-- Renderizado dinámicamente -->
+            </div>
+          </div>
         </section>
 
         <!-- Navegación entre meses desde dentro del pliego -->
@@ -625,11 +755,20 @@ const initialBook = booksPayload[0];
             </g>
           </svg>
 
-          <div class="ink-plate-caption">
-            <div class="mask-reveal">
-              <span class="mask-reveal-inner" id="ficha-plate-caption">
-                EDICIÓN SELECCIONADA · ARCHIVO DE PORTADAS
-              </span>
+          <!-- Sello Ex Libris Patrimonial SIBUM (Opción 2) -->
+          <div class="ficha-ex-libris" aria-hidden="true">
+            <img
+              src="/logo.svg"
+              alt=""
+              class="ex-libris-seal-img"
+              width="44"
+              height="44"
+              draggable="false"
+              decoding="async"
+            />
+            <div class="ex-libris-text">
+              <span class="ex-libris-tag">Club de Lectura</span>
+              <span class="ex-libris-sub">BIBLIOTECA UM · TEMUCO</span>
             </div>
           </div>
         </div>
@@ -638,16 +777,6 @@ const initialBook = booksPayload[0];
   </div>
 </div>
 
-<!-- Plantillas SSG precompiladas con el cuerpo Markdown de cada archivo .md -->
-<div hidden aria-hidden="true">
-  {
-    renderedBooks.map((BookItem) => (
-      <template data-notes-tpl={BookItem.index}>
-        <BookItem.Content />
-      </template>
-    ))
-  }
-</div>
 
 <!-- Cursor Magnético Personalizado (Anillo de Tinta + Disco Azul Cobalto) -->
 <div class="custom-cursor" id="custom-cursor" aria-hidden="true">
@@ -756,24 +885,56 @@ const initialBook = booksPayload[0];
 
   .brand-block {
     display: flex;
-    flex-direction: column;
-    gap: 0.12rem;
+    align-items: center;
   }
 
-  .brand-kicker {
-    font-family: var(--font-mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.2em;
-    color: var(--ink-muted);
+  .brand-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .brand-logo {
+    width: clamp(38px, 2.6vw, 46px);
+    height: clamp(38px, 2.6vw, 46px);
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 50%;
+    filter: drop-shadow(0 2px 8px rgba(12, 116, 124, 0.22));
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+  }
+
+  .brand-link:hover .brand-logo {
+    transform: scale(1.07) rotate(-3deg);
+    filter: drop-shadow(0 4px 14px rgba(12, 116, 124, 0.35));
+  }
+
+  .brand-text-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
   }
 
   .brand-title {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: clamp(1.45rem, 2.2vw, 1.95rem);
-    line-height: 1;
+    font-size: clamp(1.28rem, 1.9vw, 1.72rem);
+    line-height: 1.05;
     letter-spacing: -0.01em;
     color: var(--ink);
+  }
+
+  .brand-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    color: var(--brand-petrol-slate);
+    text-transform: uppercase;
   }
 
   .chronology-controls {
@@ -852,13 +1013,14 @@ const initialBook = booksPayload[0];
   }
 
   .month-tick.is-active {
-    color: var(--cobalt);
+    color: var(--brand-petrol);
   }
 
   .month-tick.is-active .month-tick-bar {
     width: 2px;
-    background: var(--cobalt);
+    background: var(--brand-petrol);
     transform: scaleY(1.65);
+    box-shadow: 0 0 6px rgba(12, 116, 124, 0.45);
   }
 
   .month-tick-code {
@@ -1233,29 +1395,47 @@ const initialBook = booksPayload[0];
   }
 
   .spine-seal {
-    width: min(82%, 46px);
-    padding: 3px 2px;
-    border: 1px solid rgba(255, 255, 255, 0.34);
+    width: min(84%, 48px);
+    padding: 3px 2px 4px;
+    border: 1px solid rgba(231, 205, 82, 0.48);
+    color: var(--brand-gold-warm);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1px;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 1px;
   }
 
-  .spine-month {
+  .spine-seal-logo {
+    width: clamp(16px, 1.6vw, 22px);
+    height: clamp(16px, 1.6vw, 22px);
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 50%;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+    opacity: 0.95;
+    display: block;
+    pointer-events: none;
+  }
+
+  .spine-seal-num {
     font-family: var(--font-mono);
-    font-size: 0.52rem;
-    font-weight: 500;
-    letter-spacing: 0.07em;
-    line-height: 1.05;
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: var(--brand-gold-warm);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    margin-top: 1px;
   }
 
   .spine-band {
     display: block;
     width: min(68%, 38px);
     height: 1px;
-    background: currentColor;
-    opacity: 0.42;
+    background: var(--brand-gold-warm);
+    opacity: 0.55;
   }
 
   .spine-body {
@@ -1278,25 +1458,6 @@ const initialBook = booksPayload[0];
     white-space: nowrap;
     display: inline-block;
     max-height: 100%;
-  }
-
-  .spine-author-short {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-family: var(--font-mono);
-    font-size: 0.52rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    opacity: 0.8;
-    max-height: 58px;
-    display: inline-block;
-  }
-
-  .spine-year {
-    font-family: var(--font-mono);
-    font-size: 0.56rem;
-    letter-spacing: 0.05em;
-    opacity: 0.86;
   }
 
   .spine-cloth-weave {
@@ -1606,11 +1767,26 @@ const initialBook = booksPayload[0];
   }
 
   .refl-spine-seal {
-    width: min(72%, 36px);
-    height: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: min(78%, 38px);
+    height: auto;
+    padding: 2px;
+    border: 1px solid rgba(231, 205, 82, 0.32);
     border-radius: 1px;
-    opacity: 0.45;
+    opacity: 0.55;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .refl-spine-logo {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    object-fit: contain;
+    opacity: 0.7;
+    transform: scaleY(-1);
+    pointer-events: none;
   }
 
   .refl-spine-cloth {
@@ -1883,27 +2059,6 @@ const initialBook = booksPayload[0];
     color: var(--ink);
   }
 
-  .ficha-curator-quote {
-    position: relative;
-    padding-left: 1.15rem;
-    font-family: var(--font-editorial);
-    font-style: italic;
-    font-size: 1.08rem;
-    line-height: 1.52;
-    color: var(--ink);
-  }
-
-  .quote-vertical-bar {
-    position: absolute;
-    left: 0;
-    top: 2px;
-    bottom: 2px;
-    width: 2px;
-    background: var(--cobalt);
-    transform-origin: top center;
-    will-change: transform;
-  }
-
   .ficha-section {
     display: flex;
     flex-direction: column;
@@ -1926,48 +2081,414 @@ const initialBook = booksPayload[0];
     margin-bottom: 0.45rem;
   }
 
-  /* Estilos tipográficos para las notas compiladas del archivo .md */
-  .ficha-md-notes :global(.md-heading) {
+  /* ================= SECCIÓN DE OPINIONES Y CALIFICACIONES DEL CLUB ================= */
+  .ficha-reviews-section {
+    margin-top: 0.75rem;
+    padding-top: 1.15rem;
+    border-top: 1px dashed rgba(54, 84, 95, 0.28);
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+  }
+
+  /* Formulario Editorial de Registro */
+  .review-form {
+    width: 100%;
+  }
+
+  .review-form-card {
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(54, 84, 95, 0.16);
+    border-radius: 2px;
+    padding: 0.75rem 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    box-shadow: 0 1px 4px rgba(24, 20, 14, 0.02);
+  }
+
+  .review-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid rgba(54, 84, 95, 0.14);
+  }
+
+  .review-form-title {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: var(--brand-petrol);
+    text-transform: uppercase;
+  }
+
+  .review-field-rating-compact {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .review-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .review-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .review-label {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .required-indicator {
+    color: var(--brand-crimson);
+    font-weight: 700;
+  }
+
+  .optional-tag {
+    color: var(--ink-muted);
+    font-size: 0.54rem;
+    font-weight: 400;
+    text-transform: lowercase;
+  }
+
+  .review-input,
+  .review-textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(54, 84, 95, 0.26);
+    border-radius: 2px;
+    padding: 0.42rem 0.65rem;
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+  }
+
+  .review-input:focus-visible,
+  .review-textarea:focus-visible {
+    border-color: var(--brand-petrol);
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(12, 116, 124, 0.14);
+  }
+
+  .review-input:user-invalid {
+    border-color: var(--brand-crimson);
+  }
+
+  .review-textarea {
+    resize: vertical;
+    min-height: 48px;
+    line-height: 1.45;
+  }
+
+  .field-error-msg {
+    display: none;
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    color: var(--brand-crimson);
+    letter-spacing: 0.04em;
+  }
+
+  .field-name.has-error .field-error-msg {
+    display: block;
+  }
+
+  .field-name.has-error .review-input {
+    border-color: var(--brand-crimson);
+  }
+
+  /* Eliminación del cuadro/borde nativo de fieldset en Calificación */
+  .rating-fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .rating-fieldset .review-label {
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Control Accesible de Estrellas (1 al 5) SIN PUNTO NATIVO */
+  .star-rating-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .star-rating-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 2px;
+    color: rgba(54, 84, 95, 0.26);
+    transition: color 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .star-rating-label:hover {
+    transform: scale(1.18);
+  }
+
+  .star-rating-label.is-active,
+  .star-rating-label.is-hovered {
+    color: var(--brand-gold);
+  }
+
+  .star-icon {
+    display: block;
+    fill: currentColor;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.1));
+  }
+
+  /* El radio input NUNCA debe mostrar puntos o bordes del navegador */
+  .star-radio-input {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    clip: rect(0, 0, 0, 0) !important;
+    clip-path: inset(50%) !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  .star-rating-desc {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    font-weight: 500;
+    color: var(--brand-petrol);
+    letter-spacing: 0.05em;
+    margin-left: 0.45rem;
+    white-space: nowrap;
+  }
+
+  /* Botón y Acciones */
+  .review-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .review-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    background: var(--brand-petrol);
+    color: #fcfaf5;
+    border: 1px solid rgba(12, 116, 124, 0.35);
+    border-radius: 2px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(12, 116, 124, 0.2);
+    transition: background 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  }
+
+  .review-submit-btn:hover:not(:disabled) {
+    background: #095960;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(12, 116, 124, 0.28);
+  }
+
+  .review-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .submit-btn-arrow {
+    transition: transform 0.2s ease;
+  }
+
+  .review-submit-btn:hover:not(:disabled) .submit-btn-arrow {
+    transform: translateX(3px);
+  }
+
+  .review-form-feedback {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    letter-spacing: 0.05em;
+    color: var(--brand-petrol);
+  }
+
+  .review-form-feedback.is-error {
+    color: var(--brand-crimson);
+  }
+
+  /* ================= LISTADO PROTAGÓNICO DE OPINIONES ================= */
+  .reviews-catalog {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-top: 0.75rem;
+  }
+
+  .reviews-catalog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid rgba(54, 84, 95, 0.2);
+  }
+
+  .reviews-catalog-title {
     font-family: var(--font-mono);
     font-size: 0.68rem;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--cobalt);
-    margin-top: 0.55rem;
-    margin-bottom: 0.35rem;
-  }
-
-  .ficha-md-notes :global(.md-paragraph) {
-    font-family: var(--font-editorial);
-    font-size: 1rem;
-    line-height: 1.62;
-    color: var(--ink-soft);
-    margin-bottom: 0.55rem;
-  }
-
-  .ficha-md-notes :global(.md-bullet) {
-    position: relative;
-    padding-left: 1rem;
-    font-family: var(--font-editorial);
-    font-size: 0.98rem;
-    line-height: 1.56;
-    color: var(--ink-soft);
-    margin-bottom: 0.45rem;
-  }
-
-  .ficha-md-notes :global(.md-bullet::before) {
-    content: '·';
-    position: absolute;
-    left: 0.15rem;
-    top: 0;
-    font-weight: 700;
-    color: var(--cobalt);
-  }
-
-  .ficha-md-notes :global(strong) {
-    color: var(--ink);
     font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--brand-petrol);
+    text-transform: uppercase;
+  }
+
+  .reviews-catalog-count {
+    font-family: var(--font-mono);
+    font-size: 0.64rem;
+    color: var(--ink-muted);
+  }
+
+  .reviews-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    max-height: 520px;
+    overflow-y: auto;
+    padding-right: 0.45rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(54, 84, 95, 0.3) transparent;
+  }
+
+  .reviews-stack :global(.review-card) {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(54, 84, 95, 0.16);
+    border-left: 3px solid var(--brand-gold);
+    border-radius: 2px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 6px rgba(24, 20, 14, 0.04);
+    animation: reviewFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes reviewFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Línea 1: Nombre del usuario y fecha con separación visible */
+  .reviews-stack :global(.review-card-line-1) {
+    display: flex;
+    align-items: baseline;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .reviews-stack :global(.review-card-author) {
+    font-family: var(--font-sans);
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .reviews-stack :global(.review-card-date) {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Debajo: correo entre paréntesis en letra más pequeña y grisácea */
+  .reviews-stack :global(.review-card-email) {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: #6a7c82;
+    letter-spacing: 0.02em;
+    margin-top: 0.15rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Línea 2: Estrellas en color dorado */
+  .reviews-stack :global(.review-card-line-2) {
+    display: flex;
+    align-items: center;
+    margin-top: 0.35rem;
+  }
+
+  .reviews-stack :global(.review-card-stars) {
+    color: var(--brand-gold) !important;
+    font-size: 1.05rem;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.14));
+  }
+
+  /* Línea 3: Espaciado visible para que el párrafo respire + texto del comentario */
+  .reviews-stack :global(.review-card-line-3) {
+    margin-top: 0.95rem; /* Espaciado visible para que el párrafo respire */
+    padding-top: 0.65rem;
+    border-top: 1px dashed rgba(54, 84, 95, 0.15);
+  }
+
+  .reviews-stack :global(.review-card-comment) {
+    font-family: var(--font-editorial);
+    font-size: 1.06rem;
+    line-height: 1.62;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .reviews-stack :global(.reviews-empty-message) {
+    padding: 1.5rem;
+    text-align: center;
+    font-family: var(--font-editorial);
+    font-style: italic;
+    font-size: 0.98rem;
+    color: var(--ink-muted);
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px dashed rgba(54, 84, 95, 0.22);
+    border-radius: 2px;
   }
 
   .ficha-sheet-nav {
@@ -2029,12 +2550,52 @@ const initialBook = booksPayload[0];
     will-change: transform;
   }
 
-  .ink-plate-caption {
+  /* Sello Ex Libris Patrimonial SIBUM (Opción 2) */
+  .ficha-ex-libris {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(54, 84, 95, 0.18);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(2px);
+    box-shadow: 0 2px 6px rgba(24, 20, 14, 0.04);
+    margin-top: 0.15rem;
+    transform: rotate(-0.5deg);
+    pointer-events: none;
+  }
+
+  .ex-libris-seal-img {
+    width: 36px;
+    height: 36px;
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 50%;
+    opacity: 0.88;
+    mix-blend-mode: multiply;
+  }
+
+  .ex-libris-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.1;
+  }
+
+  .ex-libris-tag {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--brand-petrol);
+  }
+
+  .ex-libris-sub {
     font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.18em;
+    font-size: 0.5rem;
+    letter-spacing: 0.12em;
     color: var(--ink-muted);
-    text-align: center;
   }
 
   /* ================= CURSOR PERSONALIZADO ================= */
@@ -2079,7 +2640,7 @@ const initialBook = booksPayload[0];
       display: grid;
       place-items: center;
       overflow: hidden;
-      box-shadow: 0 10px 26px rgba(27, 63, 168, 0.32);
+      box-shadow: 0 10px 28px rgba(12, 116, 124, 0.35);
       transform: scale(0);
       will-change: transform;
     }
@@ -2200,7 +2761,6 @@ const initialBook = booksPayload[0];
     pages: number;
     genre: string;
     rating: string;
-    creditLine: string;
     publisher: string | null;
     publishedYear: number | null;
     country: string | null;
@@ -2231,6 +2791,16 @@ const initialBook = booksPayload[0];
   const COPIES = 3;
   const M = N * COPIES;
 
+  try {
+    // Limpieza de almacenamiento local previo para garantizar inicio completamente limpio
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('cl_reviews_') || k.startsWith('cl_reviews_v'))) {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {}
+
   const stageRoot = document.getElementById('stage-root') as HTMLElement;
   const shelfStage = document.getElementById('shelf-stage') as HTMLElement;
   const sizeProbe = document.getElementById('book-size-probe') as HTMLElement;
@@ -2259,16 +2829,25 @@ const initialBook = booksPayload[0];
   const fichaBookTitle = document.getElementById('ficha-book-title') as HTMLElement;
   const fichaAuthorLine = document.getElementById('ficha-author-line') as HTMLElement;
   const metaCycle = document.getElementById('meta-cycle') as HTMLElement;
-  const metaPages = document.getElementById('meta-pages') as HTMLElement;
+  const metaPublished = document.getElementById('meta-published') as HTMLElement;
   const metaGenre = document.getElementById('meta-genre') as HTMLElement;
   const metaRating = document.getElementById('meta-rating') as HTMLElement;
-  const fichaQuoteBar = document.getElementById('ficha-quote-bar') as HTMLElement;
-  const fichaQuoteLines = document.getElementById('ficha-quote-lines') as HTMLElement;
   const fichaSynopsisLines = document.getElementById('ficha-synopsis-lines') as HTMLElement;
-  const fichaMarkdownContainer = document.getElementById('ficha-markdown-container') as HTMLElement;
-  const fichaPlateCaption = document.getElementById('ficha-plate-caption') as HTMLElement;
   const fichaPrevBookBtn = document.getElementById('ficha-prev-book') as HTMLButtonElement;
   const fichaNextBookBtn = document.getElementById('ficha-next-book') as HTMLButtonElement;
+
+  // Elementos de Opiniones y Calificación de los Miembros
+  const reviewForm = document.getElementById('review-form') as HTMLFormElement;
+  const reviewAuthorName = document.getElementById('review-author-name') as HTMLInputElement;
+  const reviewAuthorEmail = document.getElementById('review-author-email') as HTMLInputElement;
+  const reviewCommentText = document.getElementById('review-comment-text') as HTMLTextAreaElement;
+  const reviewSubmitBtn = document.getElementById('review-submit-btn') as HTMLButtonElement;
+  const reviewFormFeedback = document.getElementById('review-form-feedback') as HTMLElement;
+  const nameErrorMsg = document.getElementById('name-error-msg') as HTMLElement;
+  const starRatingControl = document.getElementById('star-rating-control') as HTMLElement;
+  const starRatingDesc = document.getElementById('star-rating-desc') as HTMLElement;
+  const reviewsCatalogCount = document.getElementById('reviews-catalog-count') as HTMLElement;
+  const reviewsStack = document.getElementById('reviews-stack') as HTMLElement;
 
   const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
   const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGImageElement;
@@ -2506,13 +3085,13 @@ const initialBook = booksPayload[0];
     swapMaskedSlot(captionTitleSlot, book.title, direction, 0);
     swapMaskedSlot(
       captionSubtitleSlot,
-      `${book.author.toUpperCase()} · ${book.monthName.toUpperCase()}`,
+      `${book.author.toUpperCase()}${book.publishedYear ? ` · ${book.publishedYear}` : ''}`,
       direction,
       prefersReducedMotion ? 0 : 40
     );
     swapMaskedSlot(
       captionYearSlot,
-      `${book.year} · ${book.pages} PÁGS.`,
+      `${book.monthName.toUpperCase()} ${book.year} · ${book.pages} PÁGS.`,
       direction,
       prefersReducedMotion ? 0 : 75
     );
@@ -2592,27 +3171,286 @@ const initialBook = booksPayload[0];
     return outer;
   }
 
+  interface MemberReview {
+    id?: number | string;
+    bookIndex: number;
+    bookSlug: string;
+    name: string;
+    email?: string | null;
+    rating: number;
+    comment: string;
+    createdAt: string;
+  }
+
+  const RATING_DESCRIPTIONS: Record<number, string> = {
+    1: 'No me convenció',
+    2: 'Regular',
+    3: 'Buena lectura',
+    4: 'Recomendada',
+    5: 'Me encantó!',
+  };
+
+  function getStarSymbols(rating: number): string {
+    const r = Math.max(1, Math.min(5, Math.round(rating)));
+    return '★'.repeat(r) + '☆'.repeat(5 - r);
+  }
+
+  function formatReviewDate(dateStr: string): string {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return 'Reciente';
+      return d.toLocaleDateString('es-CL', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return 'Reciente';
+    }
+  }
+
+  let currentReviewBookIdx = 0;
+  let currentReviewBookSlug = '';
+  let activeRatingSelection = 5;
+
+  function updateStarRatingUI(value: number) {
+    activeRatingSelection = value;
+    const labels = Array.from(starRatingControl.querySelectorAll<HTMLLabelElement>('.star-rating-label'));
+    labels.forEach((lbl) => {
+      const v = Number(lbl.dataset.value ?? 1);
+      lbl.classList.toggle('is-active', v <= value);
+      const radio = lbl.querySelector<HTMLInputElement>('input[type="radio"]');
+      if (radio) radio.checked = v === value;
+    });
+    starRatingDesc.textContent = RATING_DESCRIPTIONS[value] || `${value} de 5 estrellas`;
+  }
+
+  async function loadAndDisplayReviews(bookIdx: number, slug: string) {
+    currentReviewBookIdx = bookIdx;
+    currentReviewBookSlug = slug;
+    updateStarRatingUI(5);
+    reviewFormFeedback.textContent = '';
+    reviewFormFeedback.className = 'review-form-feedback';
+
+    const nameGroup = reviewAuthorName.parentElement;
+    nameGroup?.classList.remove('has-error');
+
+    let reviews: MemberReview[] = [];
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 800);
+      const res = await fetch(`/api/reviews?book=${bookIdx}&slug=${slug}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.reviews) && data.reviews.length > 0) {
+          reviews = data.reviews;
+        }
+      }
+    } catch {
+      // Modo estático o sin conexión al worker
+    }
+
+    if (reviews.length === 0) {
+      const local = localStorage.getItem(`cl_reviews_${bookIdx}`);
+      if (local) {
+        try {
+          reviews = JSON.parse(local);
+        } catch {}
+      }
+    }
+
+    renderReviewsList(reviews);
+  }
+
+  function renderReviewsList(reviews: MemberReview[]) {
+    const total = reviews.length;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    const avg = total > 0 ? (sum / total).toFixed(1) : null;
+
+    // Actualizar cuadrícula de metadatos de la ficha ("VALORACIÓN DEL CLUB")
+    metaRating.textContent = total > 0
+      ? `★ ${avg} / 5.0 (${total} ${total === 1 ? 'opinión' : 'opiniones'})`
+      : 'Sin opiniones registradas';
+    reviewsCatalogCount.textContent = `${total} ${total === 1 ? 'registro' : 'registros'}`;
+
+    // Renderizar tarjetas de reseñas de lectores
+    reviewsStack.replaceChildren();
+
+    if (total === 0) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'reviews-empty-message';
+      emptyDiv.textContent = 'Aún no hay opiniones registradas. ¡Sé el primero en compartir tu impresión!';
+      reviewsStack.appendChild(emptyDiv);
+      return;
+    }
+
+    for (const rev of reviews) {
+      const card = document.createElement('article');
+      card.className = 'review-card';
+
+      // Línea 1: Nombre del usuario y fecha de publicación con separación visible
+      const line1 = document.createElement('div');
+      line1.className = 'review-card-line-1';
+
+      const author = document.createElement('span');
+      author.className = 'review-card-author';
+      author.textContent = rev.name;
+
+      const date = document.createElement('time');
+      date.className = 'review-card-date';
+      date.textContent = formatReviewDate(rev.createdAt);
+
+      line1.appendChild(author);
+      line1.appendChild(date);
+      card.appendChild(line1);
+
+      // Debajo: correo entre paréntesis en letra más pequeña y grisácea (en caso de existir)
+      if (rev.email && rev.email.trim()) {
+        const emailEl = document.createElement('div');
+        emailEl.className = 'review-card-email';
+        const clean = rev.email.trim().replace(/^\(|\)$/g, '');
+        emailEl.textContent = `(${clean})`;
+        card.appendChild(emailEl);
+      }
+
+      // Línea 2: Cantidad de estrellas en color dorado
+      const line2 = document.createElement('div');
+      line2.className = 'review-card-line-2';
+
+      const stars = document.createElement('span');
+      stars.className = 'review-card-stars';
+      stars.textContent = getStarSymbols(rev.rating);
+      stars.style.color = '#fac90a';
+      stars.style.setProperty('color', '#fac90a', 'important');
+      stars.setAttribute('aria-label', `${rev.rating} de 5 estrellas`);
+
+      line2.appendChild(stars);
+      card.appendChild(line2);
+
+      // Línea 3: Espaciado visible para que el párrafo respire + texto del comentario
+      if (rev.comment && rev.comment.trim()) {
+        const line3 = document.createElement('div');
+        line3.className = 'review-card-line-3';
+
+        const commentP = document.createElement('p');
+        commentP.className = 'review-card-comment';
+        commentP.textContent = rev.comment;
+
+        line3.appendChild(commentP);
+        card.appendChild(line3);
+      }
+
+      reviewsStack.appendChild(card);
+    }
+  }
+
+  // Interacción de hover y selección de estrellas
+  const starLabels = Array.from(starRatingControl.querySelectorAll<HTMLLabelElement>('.star-rating-label'));
+  starLabels.forEach((lbl) => {
+    const val = Number(lbl.dataset.value ?? 1);
+    lbl.addEventListener('mouseenter', () => {
+      starLabels.forEach((l) => {
+        const v = Number(l.dataset.value ?? 1);
+        l.classList.toggle('is-hovered', v <= val);
+      });
+      starRatingDesc.textContent = RATING_DESCRIPTIONS[val] || `${val} de 5 estrellas`;
+    });
+
+    lbl.addEventListener('click', () => {
+      updateStarRatingUI(val);
+    });
+  });
+
+  starRatingControl.addEventListener('mouseleave', () => {
+    starLabels.forEach((l) => l.classList.remove('is-hovered'));
+    starRatingDesc.textContent = RATING_DESCRIPTIONS[activeRatingSelection] || `${activeRatingSelection} de 5 estrellas`;
+  });
+
+  // Envío del Formulario de Opiniones
+  reviewForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nameVal = reviewAuthorName.value.trim();
+    const emailVal = reviewAuthorEmail.value.trim();
+    const commentVal = reviewCommentText.value.trim();
+    const ratingVal = activeRatingSelection;
+
+    const nameGroup = reviewAuthorName.parentElement;
+    if (!nameVal) {
+      nameGroup?.classList.add('has-error');
+      reviewAuthorName.focus();
+      return;
+    }
+    nameGroup?.classList.remove('has-error');
+
+    reviewSubmitBtn.disabled = true;
+    const submitBtnText = reviewSubmitBtn.querySelector('.submit-btn-text');
+    if (submitBtnText) submitBtnText.textContent = 'Publicando...';
+
+    const newReview: MemberReview = {
+      bookIndex: currentReviewBookIdx,
+      bookSlug: currentReviewBookSlug,
+      name: nameVal,
+      email: emailVal || null,
+      rating: ratingVal,
+      comment: commentVal,
+      createdAt: new Date().toISOString(),
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReview),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch {
+      // Ignorar error de red y guardar localmente
+    }
+
+    try {
+      const currentStored = localStorage.getItem(`cl_reviews_${currentReviewBookIdx}`);
+      const list: MemberReview[] = currentStored ? JSON.parse(currentStored) : [];
+      list.unshift(newReview);
+      localStorage.setItem(`cl_reviews_${currentReviewBookIdx}`, JSON.stringify(list));
+      renderReviewsList(list);
+    } catch {}
+
+    reviewAuthorName.value = '';
+    reviewAuthorEmail.value = '';
+    reviewCommentText.value = '';
+    updateStarRatingUI(5);
+
+    reviewFormFeedback.textContent = '✓ ¡Tu comentario ha sido publicado con éxito!';
+    reviewFormFeedback.className = 'review-form-feedback';
+
+    reviewSubmitBtn.disabled = false;
+    if (submitBtnText) submitBtnText.textContent = 'Publicar Comentario';
+
+    setTimeout(() => {
+      reviewFormFeedback.textContent = '';
+    }, 4500);
+  });
+
   function populateFichaDOM(bookIdx: number) {
     const book = books[bookIdx];
     if (!book) return;
 
-    fichaFolioCode.textContent = `EXPEDIENTE DE LECTURA · Nº ${String(bookIdx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+    fichaFolioCode.textContent = `REGISTRO DE LECTURA · Nº ${String(bookIdx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
     fichaSeasonTag.textContent = `TEMPORADA ${book.year} · ${book.monthName.toUpperCase()}`;
     fichaBookTitle.textContent = book.title;
     const extraOrigin = [book.country, book.publishedYear].filter(Boolean).join(', ');
     fichaAuthorLine.textContent = extraOrigin ? `${book.author} — ${extraOrigin}` : `Por ${book.author}`;
 
     metaCycle.textContent = `${book.monthName} · ${book.year}`;
-    metaPages.textContent = `${book.pages} páginas`;
-    metaGenre.textContent = book.genre;
-    metaRating.textContent = book.publisher ? `${book.rating} · ${book.publisher}` : book.rating;
-    fichaPlateCaption.textContent = `${book.title.toUpperCase()} · [${book.monthCode} · ${book.year}]`;
-
-    // Cita / línea de crédito curatorial en líneas enmascaradas
-    fichaQuoteLines.replaceChildren();
-    for (const sentence of splitIntoSentences(book.creditLine)) {
-      fichaQuoteLines.appendChild(createMaskedLine(sentence, 'quote-line'));
-    }
+    metaPublished.textContent = book.publishedYear ? String(book.publishedYear) : '—';
+    metaGenre.textContent = `${book.genre} · ${book.pages} págs.`;
+    metaRating.textContent = `★ Calculando...`;
 
     // Sinopsis línea por línea en máscaras
     fichaSynopsisLines.replaceChildren();
@@ -2620,45 +3458,8 @@ const initialBook = booksPayload[0];
       fichaSynopsisLines.appendChild(createMaskedLine(sentence, 'synopsis-sentence'));
     }
 
-    // Clonar contenido Markdown compilado de Astro y envolver cada bloque en su propia máscara
-    fichaMarkdownContainer.replaceChildren();
-    const tpl = document.querySelector<HTMLTemplateElement>(`template[data-notes-tpl="${bookIdx}"]`);
-    if (tpl) {
-      const frag = tpl.content.cloneNode(true) as DocumentFragment;
-      for (const node of Array.from(frag.children)) {
-        const tag = node.tagName.toLowerCase();
-        if (tag === 'ul' || tag === 'ol') {
-          for (const li of Array.from(node.children)) {
-            const outer = document.createElement('div');
-            outer.className = 'mask-reveal';
-            const inner = document.createElement('div');
-            inner.className = 'mask-reveal-inner md-bullet';
-            inner.innerHTML = li.innerHTML;
-            inner.style.transform = 'translateY(115%)';
-            outer.appendChild(inner);
-            fichaMarkdownContainer.appendChild(outer);
-          }
-        } else if (tag.startsWith('h')) {
-          const outer = document.createElement('div');
-          outer.className = 'mask-reveal';
-          const inner = document.createElement('h3');
-          inner.className = 'mask-reveal-inner md-heading';
-          inner.innerHTML = node.innerHTML;
-          inner.style.transform = 'translateY(115%)';
-          outer.appendChild(inner);
-          fichaMarkdownContainer.appendChild(outer);
-        } else {
-          const outer = document.createElement('div');
-          outer.className = 'mask-reveal';
-          const inner = document.createElement('p');
-          inner.className = 'mask-reveal-inner md-paragraph';
-          inner.innerHTML = node.innerHTML;
-          inner.style.transform = 'translateY(115%)';
-          outer.appendChild(inner);
-          fichaMarkdownContainer.appendChild(outer);
-        }
-      }
-    }
+    // Cargar y mostrar las opiniones de los miembros para este libro
+    loadAndDisplayReviews(bookIdx, book.slug);
 
     // Semilla única para la mancha de tinta orgánica de este libro + ruta de portada
     inkTurbulence.setAttribute('seed', String(bookIdx * 13 + 7));
@@ -2676,9 +3477,6 @@ const initialBook = booksPayload[0];
       r.getAnimations().forEach((a) => a.cancel());
       r.style.transform = 'scaleX(0)';
     }
-
-    fichaQuoteBar.getAnimations().forEach((a) => a.cancel());
-    fichaQuoteBar.style.transform = 'scaleY(0)';
 
     for (const drop of inkDrops) {
       drop.getAnimations().forEach((a) => a.cancel());
@@ -2758,13 +3556,6 @@ const initialBook = booksPayload[0];
         fill: 'forwards',
       });
     }
-
-    fichaQuoteBar.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], {
-      duration: prefersReducedMotion ? 220 : 540,
-      delay: baseDelay + 180,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-      fill: 'forwards',
-    });
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     allMaskInners.forEach((el, idx) => {

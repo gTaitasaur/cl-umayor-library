@@ -1,8 +1,23 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "cl-umayor-library",
-  "compatibility_date": "2026-11-03",
-  "assets": {
-    "directory": "./dist"
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "cl-umayor-library",
+	"compatibility_date": "2026-11-03",
+	"main": "src/api/index.ts",
+	"assets": {
+		"directory": "./dist",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "cl-umayor-library-db",
+			"database_id": "cl-umayor-library-db"
+		},
+		{
+			"binding": "cl_umayor_library_db",
+			"database_name": "cl-umayor-library-db",
+			"database_id": "211b2c2d-b931-4aaf-b8a9-c5938a2b90bc",
+			"remote": true
+		}
+	]
 }

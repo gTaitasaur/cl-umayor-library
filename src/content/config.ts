@@ -27,8 +27,6 @@ const libros = defineCollection({
       accentColor: z.string().default('#1B3FA8'),
       thickness: z.number().min(28).max(96).optional(),
       synopsis: z.string(),
-      creditLine: z.string().optional(),
-      curatorNote: z.string().optional(),
       publisher: z.string().optional(),
       publishedYear: z.number().int().optional(),
       country: z.string().optional(),
