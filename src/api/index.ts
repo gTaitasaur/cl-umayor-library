@@ -51,7 +51,6 @@ const DEFAULT_SALT = 'cl-umayor-reader-sec-salt-2025';
 
 // Orígenes predeterminados autorizados para CORS
 const DEFAULT_ALLOWED_ORIGINS = [
-  'https://clubdelectura.umayor.cl',
   'http://localhost:4321',
   'http://localhost:8787',
   'http://127.0.0.1:4321',
