@@ -519,6 +519,23 @@ const initialBook = booksPayload[0];
         <section class="ficha-section ficha-reviews-section" aria-label="Opinión de Lectores">
           <!-- Formulario Editorial Compacto para registrar comentario y calificación -->
           <form class="review-form" id="review-form" novalidate>
+            <!-- Honeypot invisible para humanos (Trampa de seguridad anti-bot) -->
+            <div
+              class="review-hp-trap"
+              aria-hidden="true"
+              style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -1;"
+            >
+              <label for="review-hp-security-check">Por favor deja este campo vacío</label>
+              <input
+                type="text"
+                id="review-hp-security-check"
+                name="hp_security_check"
+                tabindex="-1"
+                autocomplete="off"
+                value=""
+              />
+            </div>
+
             <div class="review-form-card">
               <div class="review-form-header">
                 <span class="review-form-title">DEJA UN COMENTARIO</span>
@@ -536,11 +553,11 @@ const initialBook = booksPayload[0];
                     name="name"
                     class="review-input"
                     required
-                    maxlength="80"
+                    maxlength="70"
                     placeholder="Tu nombre (obligatorio)"
                     autocomplete="name"
                   />
-                  <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre.</span>
+                  <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre (2-70 caracteres).</span>
                 </div>
 
                 <div class="review-field field-email">
@@ -552,7 +569,7 @@ const initialBook = booksPayload[0];
                     id="review-author-email"
                     name="email"
                     class="review-input"
-                    maxlength="120"
+                    maxlength="100"
                     placeholder="correo@mayor.cl"
                     autocomplete="email"
                   />
@@ -605,7 +622,7 @@ const initialBook = booksPayload[0];
                   name="comment"
                   class="review-textarea"
                   rows="2"
-                  maxlength="800"
+                  maxlength="600"
                   placeholder="Comparte tus impresiones de lectura o claves de discusión..."
                 ></textarea>
               </div>
@@ -2848,6 +2865,7 @@ const initialBook = booksPayload[0];
   const starRatingDesc = document.getElementById('star-rating-desc') as HTMLElement;
   const reviewsCatalogCount = document.getElementById('reviews-catalog-count') as HTMLElement;
   const reviewsStack = document.getElementById('reviews-stack') as HTMLElement;
+  const reviewHpTrap = document.getElementById('review-hp-security-check') as HTMLInputElement | null;
 
   const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
   const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGImageElement;
@@ -3368,7 +3386,7 @@ const initialBook = booksPayload[0];
     starRatingDesc.textContent = RATING_DESCRIPTIONS[activeRatingSelection] || `${activeRatingSelection} de 5 estrellas`;
   });
 
-  // Envío del Formulario de Opiniones
+  // Envío del Formulario de Opiniones con Verificación AppSec
   reviewForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -3376,19 +3394,113 @@ const initialBook = booksPayload[0];
     const emailVal = reviewAuthorEmail.value.trim();
     const commentVal = reviewCommentText.value.trim();
     const ratingVal = activeRatingSelection;
+    const honeypotVal = reviewHpTrap ? reviewHpTrap.value : '';
 
     const nameGroup = reviewAuthorName.parentElement;
-    if (!nameVal) {
+    if (!nameVal || nameVal.length < 2) {
       nameGroup?.classList.add('has-error');
+      if (nameErrorMsg) nameErrorMsg.textContent = 'Por favor ingresa tu nombre (mínimo 2 caracteres).';
+      reviewAuthorName.focus();
+      return;
+    }
+    if (nameVal.length > 70) {
+      nameGroup?.classList.add('has-error');
+      if (nameErrorMsg) nameErrorMsg.textContent = 'El nombre no puede exceder 70 caracteres.';
       reviewAuthorName.focus();
       return;
     }
     nameGroup?.classList.remove('has-error');
 
+    if (commentVal.length > 600) {
+      reviewFormFeedback.textContent = '✕ El comentario no puede exceder los 600 caracteres.';
+      reviewFormFeedback.className = 'review-form-feedback is-error';
+      return;
+    }
+
+    if (emailVal.length > 100) {
+      reviewFormFeedback.textContent = '✕ El correo electrónico no puede exceder los 100 caracteres.';
+      reviewFormFeedback.className = 'review-form-feedback is-error';
+      return;
+    }
+
+    // Heurística de cliente: Bloqueo preventivo de enlaces y spam comercial
+    const spamPattern = /(https?:\/\/|www\.|\.xyz|\.top|\.click|t\.me\/|wa\.me\/|chat\.whatsapp)/i;
+    if (spamPattern.test(nameVal) || spamPattern.test(commentVal) || (emailVal && spamPattern.test(emailVal))) {
+      reviewFormFeedback.textContent = '✕ Por seguridad, no se admiten enlaces ni contenido promocional en los comentarios.';
+      reviewFormFeedback.className = 'review-form-feedback is-error';
+      return;
+    }
+
+    // Heurística de cliente: Filtro preventivo de insultos o vocabulario soez
+    const profanityPattern = /\b(weon|weona|aweonao|culiao|culia|conchetumadre|conchesumadre|ctm|csm|maricon|mierda|puta|puto|hijo ?de ?puta|imbecil|estupido|tarado|porno|xxx|sexo|pene|vagina|tetas|verga|pija|follar|cojer|prostituta|escort)\b/i;
+    if (profanityPattern.test(nameVal) || profanityPattern.test(commentVal) || (emailVal && profanityPattern.test(emailVal))) {
+      reviewFormFeedback.textContent = '✕ Por favor mantén un tono respetuoso. Se detectó vocabulario no permitido.';
+      reviewFormFeedback.className = 'review-form-feedback is-error';
+      return;
+    }
+
     reviewSubmitBtn.disabled = true;
     const submitBtnText = reviewSubmitBtn.querySelector('.submit-btn-text');
     if (submitBtnText) submitBtnText.textContent = 'Publicando...';
+    reviewFormFeedback.textContent = '';
+    reviewFormFeedback.className = 'review-form-feedback';
 
+    const payload = {
+      bookIndex: currentReviewBookIdx,
+      bookSlug: currentReviewBookSlug,
+      name: nameVal,
+      email: emailVal || null,
+      rating: ratingVal,
+      comment: commentVal,
+      hp_security_check: honeypotVal,
+    };
+
+    let isSuccess = false;
+    let feedbackMessage = '';
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data?.success) {
+        isSuccess = true;
+      } else {
+        if (res.status === 429) {
+          feedbackMessage = data?.error || 'Has publicado recientemente. Por favor espera antes de volver a comentar.';
+        } else {
+          feedbackMessage = data?.error || `Error al registrar la opinión (${res.status}).`;
+        }
+      }
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        feedbackMessage = 'La solicitud tardó demasiado tiempo. Por favor reintenta.';
+      } else {
+        feedbackMessage = 'No se pudo conectar con el servidor editorial.';
+      }
+    }
+
+    // Si la petición fue rechazada por el backend (Rate limit, Honeypot, filtro de palabras, XSS, etc.)
+    if (!isSuccess) {
+      reviewFormFeedback.textContent = `✕ ${feedbackMessage}`;
+      reviewFormFeedback.className = 'review-form-feedback is-error';
+      reviewSubmitBtn.disabled = false;
+      if (submitBtnText) submitBtnText.textContent = 'Publicar Comentario';
+      return;
+    }
+
+    // Éxito confirmado por el backend
     const newReview: MemberReview = {
       bookIndex: currentReviewBookIdx,
       bookSlug: currentReviewBookSlug,
@@ -3398,20 +3510,6 @@ const initialBook = booksPayload[0];
       comment: commentVal,
       createdAt: new Date().toISOString(),
     };
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
-      await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newReview),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-    } catch {
-      // Ignorar error de red y guardar localmente
-    }
 
     try {
       const currentStored = localStorage.getItem(`cl_reviews_${currentReviewBookIdx}`);
@@ -3424,6 +3522,7 @@ const initialBook = booksPayload[0];
     reviewAuthorName.value = '';
     reviewAuthorEmail.value = '';
     reviewCommentText.value = '';
+    if (reviewHpTrap) reviewHpTrap.value = '';
     updateStarRatingUI(5);
 
     reviewFormFeedback.textContent = '✓ ¡Tu comentario ha sido publicado con éxito!';
@@ -3434,7 +3533,11 @@ const initialBook = booksPayload[0];
 
     setTimeout(() => {
       reviewFormFeedback.textContent = '';
-    }, 4500);
+    }, 5000);
+
+    setTimeout(() => {
+      reviewFormFeedback.textContent = '';
+    }, 5000);
   });
 
   function populateFichaDOM(bookIdx: number) {

@@ -12,6 +12,8 @@
     "preview": "astro preview",
     "preview:cf": "pnpm run build && wrangler dev",
     "deploy": "pnpm run build && wrangler deploy",
+    "db:clean-orphans": "node scripts/purge-orphaned-reviews.mjs --remote",
+    "db:clean-orphans:local": "node scripts/purge-orphaned-reviews.mjs --local",
     "astro": "astro"
   },
   "dependencies": {

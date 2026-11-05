@@ -13,5 +13,8 @@
 			"database_name": "cl-umayor-library-db",
 			"database_id": "211b2c2d-b931-4aaf-b8a9-c5938a2b90bc"
 		}
-	]
+	],
+	"vars": {
+		"ALLOWED_ORIGINS": "https://clubdelectura.umayor.cl,http://localhost:4321,http://127.0.0.1:4321,http://localhost:8787,http://127.0.0.1:8787"
+	}
 }

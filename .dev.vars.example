@@ -1,0 +1,8 @@
+# Secretos y variables de entorno para desarrollo local con Wrangler
+# Renombrar este archivo a .dev.vars para pruebas locales con `wrangler dev`
+
+# Clave de sal secreta para hash de IP (opcional, tiene valor por defecto en código)
+IP_HASH_SALT=cl-umayor-reader-salt-sec-2025
+
+# Orígenes CORS permitidos (separados por coma)
+ALLOWED_ORIGINS=https://clubdelectura.umayor.cl,http://localhost:4321,http://127.0.0.1:4321,http://localhost:8787,http://127.0.0.1:8787
