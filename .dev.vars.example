@@ -5,4 +5,4 @@
 IP_HASH_SALT=cl-umayor-reader-salt-sec-2025
 
 # Orígenes CORS permitidos (separados por coma)
-ALLOWED_ORIGINS=http://localhost:4321,http://127.0.0.1:4321,http://localhost:8787,http://127.0.0.1:8787
+ALLOWED_ORIGINS=https://cl-umayor-library.gtaitasaur.workers.dev,http://localhost:4321,http://127.0.0.1:4321,http://localhost:8787,http://127.0.0.1:8787

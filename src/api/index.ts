@@ -51,6 +51,7 @@ const DEFAULT_SALT = 'cl-umayor-reader-sec-salt-2025';
 
 // Orígenes predeterminados autorizados para CORS
 const DEFAULT_ALLOWED_ORIGINS = [
+  'https://cl-umayor-library.gtaitasaur.workers.dev',
   'http://localhost:4321',
   'http://localhost:8787',
   'http://127.0.0.1:4321',
@@ -126,20 +127,33 @@ function containsProfanityOrInappropriateContent(text: string): boolean {
 // ============================================================================
 
 /**
- * Valida si el origen de la petición pertenece a la lista blanca autorizada.
+ * Valida si el origen de la petición pertenece a la lista blanca autorizada o es Same-Origin.
  */
-function isOriginAllowed(origin: string | null, env: Env): boolean {
+function isOriginAllowed(origin: string | null, env: Env, requestUrl?: string): boolean {
   if (!origin) return false;
 
-  const configured = env.ALLOWED_ORIGINS
-    ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().toLowerCase())
-    : DEFAULT_ALLOWED_ORIGINS.map((o) => o.toLowerCase());
+  const lowerOrigin = origin.toLowerCase().trim().replace(/\/+$/, '');
 
-  const lowerOrigin = origin.toLowerCase();
+  // 1. Same-Origin automático: Si el navegador navega en el mismo origen del Worker
+  if (requestUrl) {
+    try {
+      const currentHostOrigin = new URL(requestUrl).origin.toLowerCase().replace(/\/+$/, '');
+      if (lowerOrigin === currentHostOrigin) {
+        return true;
+      }
+    } catch {}
+  }
+
+  // 2. Orígenes configurados en variables de entorno o predeterminados
+  const configured = env.ALLOWED_ORIGINS
+    ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim().toLowerCase().replace(/\/+$/, ''))
+    : DEFAULT_ALLOWED_ORIGINS.map((o) => o.toLowerCase().replace(/\/+$/, ''));
+
   if (configured.includes(lowerOrigin)) return true;
 
-  // Permitir subdominios de vista previa seguros de Cloudflare Pages y Workers
-  if (/^https:\/\/[a-z0-9-]+\.(pages|workers)\.dev$/.test(lowerOrigin)) {
+  // 3. Permitir cualquier subdominio de Cloudflare Workers o Pages (*.workers.dev y *.pages.dev)
+  // Soporta subdominios anidados como: cl-umayor-library.gtaitasaur.workers.dev
+  if (/^https:\/\/([a-z0-9-]+\.)*(pages|workers)\.dev$/.test(lowerOrigin)) {
     return true;
   }
 
@@ -156,7 +170,7 @@ function getSecurityAndCorsHeaders(request: Request, env: Env): Record<string, s
     Vary: 'Origin',
   };
 
-  if (origin && isOriginAllowed(origin, env)) {
+  if (origin && isOriginAllowed(origin, env, request.url)) {
     headers['Access-Control-Allow-Origin'] = origin;
     headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
     headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Requested-With';
@@ -309,7 +323,7 @@ export default {
       const origin = request.headers.get('Origin');
 
       // Rechazar orígenes cruzados no autorizados en solicitudes con cabecera Origin
-      if (origin && !isOriginAllowed(origin, env)) {
+      if (origin && !isOriginAllowed(origin, env, request.url)) {
         return Response.json(
           { error: 'Origen no autorizado por la política de seguridad CORS.' },
           { status: 403, headers: { ...SECURITY_HEADERS, 'Content-Type': 'application/json' } }
