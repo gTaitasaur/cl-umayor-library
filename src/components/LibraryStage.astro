@@ -15,9 +15,82 @@ const renderedBooks = entries.map((entry, index) => ({
 
 const years = Array.from(new Set(renderedBooks.map((b) => b.data.year))).sort((a, b) => a - b);
 const monthCodes = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+const totalEditions = renderedBooks.length;
+
+function buildEditorialTitleLayout(rawTitle: string): {
+  lines: string[];
+  fontSize: number;
+  yPositions: number[];
+} {
+  const upper = rawTitle.trim().toLocaleUpperCase('es-CL');
+  const words = upper.split(/\s+/).filter(Boolean);
+  const maxCharsPerLine = 15;
+
+  let lines: string[] = [];
+  if (upper.length <= maxCharsPerLine) {
+    lines = [upper];
+  } else {
+    let current = '';
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length <= maxCharsPerLine || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+  }
+
+  let baseFontSize = 42;
+  let lineHeight = 42;
+  if (lines.length === 2) {
+    baseFontSize = 35;
+    lineHeight = 37;
+  } else if (lines.length === 3) {
+    baseFontSize = 30;
+    lineHeight = 32;
+  } else if (lines.length >= 4) {
+    lines = [];
+    let current = '';
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length <= 19 || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+    baseFontSize = lines.length >= 4 ? 24 : 28;
+    lineHeight = lines.length >= 4 ? 27 : 31;
+  }
+
+  const longestLine = Math.max(...lines.map((l) => l.length), 1);
+  const maxSafeFontSize = Math.floor(510 / (longestLine * 0.64));
+  const fontSize = Math.min(baseFontSize, maxSafeFontSize);
+
+  let yPositions: number[];
+  if (lines.length === 1) {
+    yPositions = [178];
+  } else if (lines.length === 2 && fontSize === 35) {
+    yPositions = [158, 195];
+  } else if (lines.length === 3 && fontSize === 30) {
+    yPositions = [146, 178, 210];
+  } else {
+    const centerBaseline = 178;
+    const startY = centerBaseline - ((lines.length - 1) * lineHeight) / 2;
+    yPositions = lines.map((_, i) => Math.round(startY + i * lineHeight));
+  }
+
+  return { lines, fontSize, yPositions };
+}
 
 const booksPayload = renderedBooks.map((b) => {
   const resolvedCover = b.data.coverImage ?? b.data.cover ?? '/covers/cover-01.svg';
+  const editorialAccent = b.data.accentColor ?? (b.index % 2 === 0 ? '#1F3FB0' : '#B8332A');
   const computedThickness =
     b.data.thickness ?? Math.round(Math.min(82, Math.max(46, 38 + b.data.pages * 0.068)));
 
@@ -34,7 +107,7 @@ const booksPayload = renderedBooks.map((b) => {
     spineImage: b.data.spineImage ?? null,
     spineColor: b.data.spineColor,
     spineTextColor: b.data.spineTextColor,
-    accentColor: b.data.accentColor,
+    accentColor: editorialAccent,
     thickness: computedThickness,
     pages: b.data.pages,
     genre: b.data.genre,
@@ -46,14 +119,41 @@ const booksPayload = renderedBooks.map((b) => {
   };
 });
 
+const editorialCoverSpecs = renderedBooks.map((b) => {
+  const payload = booksPayload[b.index];
+  const authorUpper = b.data.author.trim().toLocaleUpperCase('es-CL');
+  const isLongAuthor = authorUpper.length > 28;
+
+  return {
+    index: b.index,
+    cover: payload.cover,
+    coverMode: b.data.coverMode ?? 'editorial',
+    coverFit: b.data.coverFit ?? 'contain',
+    coverFrameBg: b.data.coverFrameBg ?? '#141414',
+    editorialAccent: payload.accentColor,
+    titleLayout: buildEditorialTitleLayout(b.data.title),
+    authorUpper,
+    authorFontSize: isLongAuthor ? 11.5 : 13,
+    authorLetterSpacing: isLongAuthor ? 1.8 : 2.6,
+    metaLine: `${b.data.genre} · ${b.data.pages} págs.`,
+    editionLabel: `EDICIÓN N.º ${String(b.index + 1).padStart(2, '0')} / ${String(totalEditions).padStart(2, '0')}`,
+    badgeLabel: `[${payload.monthCode} · ${b.data.year}]`,
+  };
+});
+
 // 3 ciclos virtuales garantizan una estantería infinita sin costuras incluso en monitores 4K ultrawide
 const VIRTUAL_COPIES = [0, 1, 2];
 const initialBook = booksPayload[0];
 ---
 
-<!-- Filtros SVG globales: grano táctil de papel algodón (sin coste por frame) -->
+<!-- Filtros y Plantillas Editoriales SVG globales (1 símbolo vectorial por libro, reutilizado en 3D, reflejo y ficha) -->
 <svg class="svg-defs-global" aria-hidden="true" width="0" height="0">
   <defs>
+    <pattern id="silkscreen-dots-editorial" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="0.55" fill="#141414" fill-opacity="0.09" />
+      <circle cx="4.5" cy="4.5" r="0.45" fill="#141414" fill-opacity="0.06" />
+    </pattern>
+
     <filter id="paper-tooth-filter" x="0%" y="0%" width="100%" height="100%">
       <feTurbulence
         type="fractalNoise"
@@ -72,6 +172,132 @@ const initialBook = booksPayload[0];
       </feComponentTransfer>
     </filter>
   </defs>
+
+  {editorialCoverSpecs.map((spec) => (
+    <symbol id={`editorial-cover-${spec.index}`} viewBox="0 0 648 900">
+      {spec.coverMode === 'full' ? (
+        <image
+          href={spec.cover}
+          x="0"
+          y="0"
+          width="648"
+          height="900"
+          preserveAspectRatio="xMidYMid slice"
+        />
+      ) : (
+        <>
+          {/* Papel base serigráfico crema */}
+          <rect width="648" height="900" fill="#EDEBE6" />
+          <rect width="648" height="900" fill="url(#silkscreen-dots-editorial)" />
+
+          {/* Marco fino editorial Criterion / Vasari */}
+          <rect x="24" y="22" width="600" height="856" fill="none" stroke="#141414" stroke-width="1.5" />
+          <rect
+            x="31"
+            y="28"
+            width="586"
+            height="844"
+            fill="none"
+            stroke="#141414"
+            stroke-width="0.6"
+            stroke-opacity="0.45"
+          />
+
+          {/* Leyenda superior con alternancia automática Azul (#1F3FB0) / Rojo (#B8332A) */}
+          <text
+            x="324"
+            y="64"
+            text-anchor="middle"
+            font-family="system-ui, -apple-system, sans-serif"
+            font-weight="700"
+            font-size="10.5"
+            letter-spacing="3.2"
+            fill={spec.editorialAccent}
+          >SELECCIÓN DEL CLUB DE LECTURA</text>
+          <line x1="72" y1="80" x2="576" y2="80" stroke="#141414" stroke-width="1.2" />
+
+          {/* Título grande en serif condensada (ajuste dinámico en 1, 2, 3 o 4 líneas) */}
+          {spec.titleLayout.lines.map((line, lineIdx) => (
+            <text
+              x="0"
+              y="0"
+              text-anchor="middle"
+              font-family="Georgia, 'Times New Roman', serif"
+              font-weight="700"
+              font-size={spec.titleLayout.fontSize}
+              letter-spacing="-0.5"
+              transform={`translate(324, ${spec.titleLayout.yPositions[lineIdx]}) scale(0.98, 1.04)`}
+              fill="#141414"
+            >{line}</text>
+          ))}
+
+          {/* Autor y metadato editorial */}
+          <line x1="244" y1="262" x2="404" y2="262" stroke={spec.editorialAccent} stroke-width="2" />
+          <text
+            x="324"
+            y="290"
+            text-anchor="middle"
+            font-family="system-ui, -apple-system, sans-serif"
+            font-weight="600"
+            font-size={spec.authorFontSize}
+            letter-spacing={spec.authorLetterSpacing}
+            fill="#141414"
+          >{spec.authorUpper}</text>
+          <text
+            x="324"
+            y="314"
+            text-anchor="middle"
+            font-family="Georgia, serif"
+            font-style="italic"
+            font-size="13"
+            fill="#141414"
+            fill-opacity="0.72"
+          >{spec.metaLine}</text>
+
+          {/* Ventana central vertical en formato 4:5 (352 × 440 px) */}
+          <svg x="148" y="338" width="352" height="440" viewBox="0 0 352 440" overflow="hidden">
+            <rect width="352" height="440" fill={spec.coverFrameBg} />
+            <image
+              href={spec.cover}
+              x="0"
+              y="0"
+              width="352"
+              height="440"
+              preserveAspectRatio={spec.coverFit === 'cover' ? 'xMidYMid slice' : 'xMidYMid meet'}
+            />
+          </svg>
+          <rect x="148" y="338" width="352" height="440" fill="none" stroke="#141414" stroke-width="1.5" />
+
+          {/* Pie editorial e insignia enmarcada inferior derecha */}
+          <text
+            x="72"
+            y="832"
+            font-family="system-ui, -apple-system, sans-serif"
+            font-weight="600"
+            font-size="9.5"
+            letter-spacing="2"
+            fill="#141414"
+            fill-opacity="0.72"
+          >{spec.editionLabel}</text>
+
+          <g transform="translate(458, 810)">
+            <rect x="0" y="0" width="118" height="32" fill="#141414" />
+            <rect x="3" y="3" width="112" height="26" fill="none" stroke="#EDEBE6" stroke-width="0.8" />
+            <text
+              x="59"
+              y="20"
+              text-anchor="middle"
+              font-family="ui-monospace, monospace"
+              font-weight="700"
+              font-size="11"
+              letter-spacing="1.4"
+              fill="#EDEBE6"
+            >{spec.badgeLabel}</text>
+          </g>
+        </>
+      )}
+    </symbol>
+  ))}
 </svg>
 
 <div class="stage-root" id="stage-root">
@@ -235,15 +461,17 @@ const initialBook = booksPayload[0];
                   style={`--spine-bg: ${book.spineColor}; --spine-fg: ${book.spineTextColor}; --book-accent: ${book.accentColor};`}
                 >
                   <span class="book-3d">
-                    {/* 1. Portada Frontal Ilustrada */}
+                    {/* 1. Portada Frontal Editorial Dinámica */}
                     <span class="book-face book-face--front">
-                      <img
+                      <svg
                         class="cover-art-img"
-                        src={book.cover}
-                        alt={isPrimaryCopy ? `Portada de ${book.title}` : ''}
-                        draggable="false"
-                        decoding="async"
-                      />
+                        viewBox="0 0 648 900"
+                        preserveAspectRatio="xMidYMid slice"
+                        aria-hidden="true"
+                        focusable="false"
+                      >
+                        <use href={`#editorial-cover-${book.index}`} width="648" height="900" />
+                      </svg>
                       <span class="cover-hinge-groove" aria-hidden="true" />
                       <span class="cover-paper-sheen" aria-hidden="true" />
                     </span>
@@ -313,13 +541,15 @@ const initialBook = booksPayload[0];
                     <span class="book-refl-wrap" aria-hidden="true">
                       {/* Reflejo de Portada */}
                       <span class="book-refl--front">
-                        <img
+                        <svg
                           class="refl-cover-img"
-                          src={book.cover}
-                          alt=""
-                          draggable="false"
-                          decoding="async"
-                        />
+                          viewBox="0 0 648 900"
+                          preserveAspectRatio="xMidYMax slice"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <use href={`#editorial-cover-${book.index}`} width="648" height="900" />
+                        </svg>
                         <span class="refl-front-sheen" />
                       </span>
 
@@ -752,16 +982,15 @@ const initialBook = booksPayload[0];
               stroke-dasharray="4 4"
             />
 
-            <!-- Imagen de la portada enmascarada orgánicamente por las 7 manchas de tinta -->
+            <!-- Portada editorial dinámica enmascarada orgánicamente por las 7 manchas de tinta -->
             <g mask="url(#ink-blot-mask)">
-              <image
+              <use
                 id="ficha-ink-image"
-                href={initialBook?.cover ?? ''}
+                href={`#editorial-cover-${initialBook?.index ?? 0}`}
                 x="0"
                 y="0"
                 width="648"
                 height="900"
-                preserveAspectRatio="xMidYMid slice"
               />
               <rect
                 x="0"
@@ -826,6 +1055,7 @@ const initialBook = booksPayload[0];
     position: absolute;
     width: 0;
     height: 0;
+    overflow: hidden;
     pointer-events: none;
   }
 
@@ -1298,9 +1528,10 @@ const initialBook = booksPayload[0];
   .cover-art-img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     display: block;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
     border-radius: inherit;
   }
 
@@ -1394,7 +1625,7 @@ const initialBook = booksPayload[0];
 
   .spine-thumb-frame {
     width: min(72%, 42px);
-    aspect-ratio: 648 / 740;
+    aspect-ratio: 4 / 5;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 1px;
     overflow: hidden;
@@ -1718,11 +1949,11 @@ const initialBook = booksPayload[0];
   .refl-cover-img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: bottom;
     transform: scaleY(-1);
     display: block;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .refl-front-sheen {
@@ -2882,8 +3113,9 @@ const initialBook = booksPayload[0];
   const reviewsStack = document.getElementById('reviews-stack') as HTMLElement;
   const reviewHpTrap = document.getElementById('review-hp-security-check') as HTMLInputElement | null;
 
+  const inkRevealSvg = document.getElementById('ink-reveal-svg') as unknown as SVGSVGElement;
   const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
-  const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGImageElement;
+  const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGUseElement;
   const inkDrops = Array.from(document.querySelectorAll<SVGCircleElement>('.ink-drop'));
 
   // Cursor Magnético
@@ -3579,9 +3811,10 @@ const initialBook = booksPayload[0];
     // Cargar y mostrar las opiniones de los miembros para este libro
     loadAndDisplayReviews(bookIdx, book.slug);
 
-    // Semilla única para la mancha de tinta orgánica de este libro + ruta de portada
+    // Semilla única para la mancha de tinta orgánica de este libro + plantilla editorial dinámica
     inkTurbulence.setAttribute('seed', String(bookIdx * 13 + 7));
-    fichaInkImage.setAttribute('href', book.cover);
+    fichaInkImage.setAttribute('href', `#editorial-cover-${bookIdx}`);
+    inkRevealSvg?.setAttribute('aria-label', `Portada editorial de ${book.title}`);
 
     // Preparar todos los elementos enmascarados antes de animar
     const allMaskInners = fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner');

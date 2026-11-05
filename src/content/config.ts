@@ -3,8 +3,9 @@ import { defineCollection, z } from 'astro:content';
 /**
  * Esquema de la colección 'libros' del Club de Lectura.
  *
- * Compatible tanto con `coverImage` como con `cover` para enlazar carátulas
- * alojadas manualmente en `public/covers/`, y con `spineImage` opcional para lomos.
+ * Compatible tanto con `coverImage` como con `cover` para enlazar la portada original
+ * o ilustración central en `public/covers/` (insertada dinámicamente en la ventana
+ * editorial vertical 4:5 de 352 × 440 px), y con `spineImage` opcional para lomos personalizados.
  */
 const libros = defineCollection({
   type: 'content',
@@ -21,10 +22,13 @@ const libros = defineCollection({
       rating: z.string().optional(),
       coverImage: z.string().optional(),
       cover: z.string().optional(),
+      coverFit: z.enum(['contain', 'cover']).default('contain'),
+      coverFrameBg: z.string().default('#141414'),
+      coverMode: z.enum(['editorial', 'full']).default('editorial'),
       spineImage: z.string().optional(),
       spineColor: z.string().default('#242C35'),
       spineTextColor: z.string().default('#F4F2ED'),
-      accentColor: z.string().default('#1B3FA8'),
+      accentColor: z.string().optional(),
       thickness: z.number().min(28).max(96).optional(),
       synopsis: z.string(),
       publisher: z.string().optional(),
