@@ -648,6 +648,21 @@ const initialBook = booksPayload[0];
       </button>
     </div>
   </footer>
+
+  <!-- Colofón de Crédito Editorial (Discreto y Sutil) -->
+  <aside class="colophon-credit" aria-label="Crédito de desarrollo">
+    <span class="colophon-label">Desarrollo web:</span>
+    <a
+      href="https://github.com/gTaitasaur"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="colophon-link"
+      data-cursor="compact"
+      aria-label="Christian en GitHub (abre en pestaña nueva)"
+    >
+      Christian
+    </a>
+  </aside>
 </div>
 
 <!-- Pliego Desplegable de Ficha Técnica (Hermano de #stage-root para gestión limpia de `inert`) -->
@@ -763,6 +778,30 @@ const initialBook = booksPayload[0];
           </div>
           <div class="ficha-synopsis-lines" id="ficha-synopsis-lines"></div>
         </section>
+
+        <!-- Navegación entre meses desde dentro del pliego (Inmediatamente debajo de la Sinopsis) -->
+        <nav class="ficha-sheet-nav" aria-label="Navegación entre meses del catálogo">
+          <button
+            type="button"
+            class="sheet-step-btn"
+            id="ficha-prev-book"
+            data-cursor="compact"
+          >
+            <span class="mask-reveal">
+              <span class="mask-reveal-inner">← MES ANTERIOR</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            class="sheet-step-btn"
+            id="ficha-next-book"
+            data-cursor="compact"
+          >
+            <span class="mask-reveal">
+              <span class="mask-reveal-inner">MES SIGUIENTE →</span>
+            </span>
+          </button>
+        </nav>
 
         <!-- Sección de Opiniones y Calificación de los Miembros del Club -->
         <section class="ficha-section ficha-reviews-section" aria-label="Opinión de Lectores">
@@ -908,30 +947,6 @@ const initialBook = booksPayload[0];
             </div>
           </div>
         </section>
-
-        <!-- Navegación entre meses desde dentro del pliego -->
-        <div class="ficha-sheet-nav">
-          <button
-            type="button"
-            class="sheet-step-btn"
-            id="ficha-prev-book"
-            data-cursor="compact"
-          >
-            <span class="mask-reveal">
-              <span class="mask-reveal-inner">← MES ANTERIOR</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            class="sheet-step-btn"
-            id="ficha-next-book"
-            data-cursor="compact"
-          >
-            <span class="mask-reveal">
-              <span class="mask-reveal-inner">MES SIGUIENTE →</span>
-            </span>
-          </button>
-        </div>
       </div>
 
       <!-- Columna Derecha: Revelado de Portada por Mancha de Tinta SVG (7 círculos + feTurbulence + feDisplacementMap) -->
@@ -2209,6 +2224,51 @@ const initialBook = booksPayload[0];
     letter-spacing: 0.14em;
   }
 
+  /* ================= COLOFÓN DE CRÉDITO EDITORIAL ================= */
+  .colophon-credit {
+    position: absolute;
+    bottom: clamp(10px, 1.8dvh, 16px);
+    right: clamp(14px, 2.5vw, 32px);
+    z-index: 10;
+    font-family: var(--font-mono);
+    font-size: clamp(0.58rem, 1vw, 0.64rem);
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    opacity: 0.55;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    pointer-events: auto;
+    transition: opacity 0.2s ease;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .colophon-credit:hover {
+    opacity: 0.95;
+  }
+
+  .colophon-label {
+    text-transform: uppercase;
+    font-size: 0.56rem;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+  }
+
+  .colophon-link {
+    color: var(--brand-petrol);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: rgba(12, 116, 124, 0.35);
+    text-underline-offset: 3px;
+    transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  }
+
+  .colophon-link:hover {
+    color: var(--brand-petrol-deep);
+    text-decoration-color: var(--brand-petrol-deep);
+  }
+
   /* ================= PLIEGO DE FICHA TÉCNICA ================= */
   .ficha-sheet {
     position: fixed;
@@ -2835,8 +2895,9 @@ const initialBook = booksPayload[0];
   }
 
   .ficha-sheet-nav {
-    margin-top: auto;
-    padding-top: 1rem;
+    margin-top: 0.35rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.25rem;
     border-top: 1px solid var(--rule);
     display: flex;
     align-items: center;
@@ -3090,6 +3151,12 @@ const initialBook = booksPayload[0];
       height: 38px;
       min-inline-size: 38px;
       min-block-size: 38px;
+    }
+
+    .colophon-credit {
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.54rem;
     }
   }
 </style>
@@ -3726,6 +3793,25 @@ const initialBook = booksPayload[0];
     starRatingDesc.textContent = RATING_DESCRIPTIONS[activeRatingSelection] || `${activeRatingSelection} de 5 estrellas`;
   });
 
+  // Identificador de dispositivo anónimo y persistente para Rate Limiting en redes universitarias compartidas
+  function getOrCreateDeviceToken(): string {
+    const KEY = 'cl_reader_device_id';
+    let token = '';
+    try {
+      token = localStorage.getItem(KEY) || '';
+    } catch {}
+
+    if (!token || token.length < 16 || token.length > 64) {
+      token = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'cl_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+      try {
+        localStorage.setItem(KEY, token);
+      } catch {}
+    }
+    return token;
+  }
+
   // Envío del Formulario de Opiniones con Verificación AppSec
   reviewForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3793,6 +3879,7 @@ const initialBook = booksPayload[0];
       rating: ratingVal,
       comment: commentVal,
       hp_security_check: honeypotVal,
+      device_token: getOrCreateDeviceToken(),
     };
 
     let isSuccess = false;

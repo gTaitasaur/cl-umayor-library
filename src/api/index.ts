@@ -249,20 +249,35 @@ function sanitizeHtmlEntities(str: string): string {
     .trim();
 }
 
+interface RateLimitResult {
+  allowed: boolean;
+  retryAfter?: number;
+  error?: string;
+}
+
 /**
- * Comprobación de Rate Limiting por IP:
- * - Regla 1: Máximo 1 reseña cada 30 segundos
- * - Regla 2: Máximo 5 reseñas por hora
+ * Comprobación de Rate Limiting Adaptativo de Dos Niveles:
+ * 1. Nivel Dispositivo (Device Token + User Agent):
+ *    - Cooldown anti-ráfaga: 1 reseña cada 15 segundos por dispositivo.
+ *    - Límite horario personal: máx. 15 reseñas por hora por dispositivo.
+ * 2. Nivel Red / Campus (IP Pública):
+ *    - Límite horario global: máx. 60 reseñas por hora por IP.
+ *    Permite que decenas de estudiantes en una misma red Wi-Fi o biblioteca
+ *    comenten simultáneamente sin bloquear a sus compañeros.
  */
-async function evaluateIpRateLimit(
+async function evaluateRateLimits(
   db: D1Database,
-  ipHash: string,
+  deviceHash: string,
+  networkHash: string,
   nowMs: number
-): Promise<{ allowed: boolean; retryAfter?: number; error?: string }> {
-  // 1. Escudo ultrarrápido en memoria RAM del Worker isolate
-  const lastSubmission = inMemoryRateLimit.get(ipHash);
-  if (lastSubmission && nowMs - lastSubmission < 30_000) {
-    const waitSec = Math.max(1, Math.ceil((30_000 - (nowMs - lastSubmission)) / 1000));
+): Promise<RateLimitResult> {
+  const devKey = `dev_${deviceHash}`;
+  const netKey = `net_${networkHash}`;
+
+  // 1. Escudo ultrarrápido en memoria RAM del Worker isolate (cooldown de 15 segundos)
+  const lastSubmission = inMemoryRateLimit.get(devKey);
+  if (lastSubmission && nowMs - lastSubmission < 15_000) {
+    const waitSec = Math.max(1, Math.ceil((15_000 - (nowMs - lastSubmission)) / 1000));
     return {
       allowed: false,
       retryAfter: waitSec,
@@ -270,36 +285,52 @@ async function evaluateIpRateLimit(
     };
   }
 
-  // 2. Comprobación persistente en base de datos D1 (Regla: 1 cada 30s)
   try {
-    const recent30s = await db
+    // 2. Cooldown persistente en D1 por dispositivo (15 segundos)
+    const recentDev = await db
       .prepare(
-        "SELECT COUNT(*) as count FROM rate_limits WHERE ip_hash = ? AND created_at >= datetime('now', '-30 seconds')"
+        "SELECT COUNT(*) as count FROM rate_limits WHERE ip_hash = ? AND created_at >= datetime('now', '-15 seconds')"
       )
-      .bind(ipHash)
+      .bind(devKey)
       .first<{ count: number }>();
 
-    if ((recent30s?.count ?? 0) > 0) {
+    if ((recentDev?.count ?? 0) > 0) {
       return {
         allowed: false,
-        retryAfter: 30,
-        error: 'Has publicado una reseña recientemente. Por favor espera 30 segundos antes de publicar otra.',
+        retryAfter: 15,
+        error: 'Has publicado recientemente. Por favor espera 15 segundos antes de publicar otra reseña.',
       };
     }
 
-    // 3. Comprobación persistente en base de datos D1 (Regla: máx 5 por hora)
-    const hourly = await db
+    // 3. Límite horario por dispositivo (máx. 15 reseñas por hora por persona/dispositivo)
+    const hourlyDev = await db
       .prepare(
         "SELECT COUNT(*) as count FROM rate_limits WHERE ip_hash = ? AND created_at >= datetime('now', '-1 hour')"
       )
-      .bind(ipHash)
+      .bind(devKey)
       .first<{ count: number }>();
 
-    if ((hourly?.count ?? 0) >= 5) {
+    if ((hourlyDev?.count ?? 0) >= 15) {
       return {
         allowed: false,
         retryAfter: 3600,
-        error: 'Has alcanzado el límite máximo de 5 reseñas por hora para esta red. Por favor intenta más tarde.',
+        error: 'Has alcanzado el límite de 15 reseñas por hora para este dispositivo. ¡Gracias por tu participación!',
+      };
+    }
+
+    // 4. Límite de seguridad para la red pública compartida / campus Wi-Fi (máx. 60 por hora)
+    const hourlyNet = await db
+      .prepare(
+        "SELECT COUNT(*) as count FROM rate_limits WHERE ip_hash = ? AND created_at >= datetime('now', '-1 hour')"
+      )
+      .bind(netKey)
+      .first<{ count: number }>();
+
+    if ((hourlyNet?.count ?? 0) >= 60) {
+      return {
+        allowed: false,
+        retryAfter: 1800,
+        error: 'Se ha alcanzado temporalmente el límite de seguridad para esta red institucional. Por favor intenta más tarde.',
       };
     }
   } catch (e) {
@@ -472,13 +503,20 @@ export default {
           );
         }
 
-        // E. EVALUACIÓN DE RATE LIMITING POR IP (30s y 5 req/h)
+        // E. EVALUACIÓN DE RATE LIMITING ADAPTATIVO (Dispositivo vs Red Universitaria)
         const clientIp = getClientIp(request);
+        const userAgent = (request.headers.get('user-agent') || 'Unknown').slice(0, 200);
         const salt = env.IP_HASH_SALT || DEFAULT_SALT;
-        const ipHash = await generateAnonymousIpHash(clientIp, salt);
-        const nowMs = Date.now();
+        const networkHash = await generateAnonymousIpHash(clientIp, salt);
 
-        const rateLimitCheck = await evaluateIpRateLimit(env.DB, ipHash, nowMs);
+        // Identificador de dispositivo para diferenciar múltiples alumnos en el mismo Wi-Fi
+        const rawDeviceToken = typeof body?.device_token === 'string' ? body.device_token.trim() : '';
+        const sanitizedDeviceToken = rawDeviceToken.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64);
+        const deviceSeed = sanitizedDeviceToken || clientIp;
+        const deviceHash = await generateAnonymousIpHash(`${deviceSeed}:${userAgent}`, salt);
+
+        const nowMs = Date.now();
+        const rateLimitCheck = await evaluateRateLimits(env.DB, deviceHash, networkHash, nowMs);
         if (!rateLimitCheck.allowed) {
           return Response.json(
             { error: rateLimitCheck.error },
@@ -486,7 +524,7 @@ export default {
               status: 429,
               headers: {
                 ...corsHeaders,
-                'Retry-After': String(rateLimitCheck.retryAfter || 30),
+                'Retry-After': String(rateLimitCheck.retryAfter || 15),
                 'Content-Type': 'application/json',
               },
             }
@@ -586,7 +624,6 @@ export default {
         // I. SANITIZACIÓN Y CODIFICACIÓN DE ENTIDADES HTML CONTRA XSS STORED
         const cleanName = sanitizeHtmlEntities(trimmedName);
         const cleanComment = sanitizeHtmlEntities(trimmedComment);
-        const userAgent = (request.headers.get('user-agent') || 'Unknown').slice(0, 200);
 
         // J. INSERCIÓN EN D1 CON SENTENCIAS PREPARADAS (.prepare().bind())
         try {
@@ -601,18 +638,28 @@ export default {
               cleanEmail,
               parsedRating,
               cleanComment,
-              ipHash,
+              networkHash,
               userAgent
             )
             .run();
 
-          // Registrar evento en rate_limits y caché local de ráfagas
-          inMemoryRateLimit.set(ipHash, nowMs);
-          await env.DB.prepare(
-            'INSERT INTO rate_limits (ip_hash, action) VALUES (?, ?)'
-          )
-            .bind(ipHash, 'create_review')
-            .run();
+          // Registrar evento en rate_limits (nivel dispositivo y nivel red universitaria)
+          const devKey = `dev_${deviceHash}`;
+          const netKey = `net_${networkHash}`;
+          inMemoryRateLimit.set(devKey, nowMs);
+
+          // Limpieza preventiva de caché en memoria si supera los 1000 elementos
+          if (inMemoryRateLimit.size > 1000) {
+            const cutoff = nowMs - 120_000;
+            for (const [k, v] of inMemoryRateLimit.entries()) {
+              if (v < cutoff) inMemoryRateLimit.delete(k);
+            }
+          }
+
+          await Promise.all([
+            env.DB.prepare('INSERT INTO rate_limits (ip_hash, action) VALUES (?, ?)').bind(devKey, 'create_review').run(),
+            env.DB.prepare('INSERT INTO rate_limits (ip_hash, action) VALUES (?, ?)').bind(netKey, 'create_review').run(),
+          ]);
 
           // Tarea en segundo plano: limpieza ocasional de rate_limits antiguos (> 2 horas)
           if (Math.random() < 0.08 && ctx) {
