@@ -769,118 +769,126 @@ const initialBook = booksPayload[0];
               />
             </div>
 
-            <div class="review-form-card">
-              <div class="review-form-header">
-                <span class="review-form-title">DEJA UN COMENTARIO</span>
-              </div>
-
-              <!-- Fila: Nombre y Correo -->
-              <div class="review-form-row">
-                <div class="review-field field-name">
-                  <label for="review-author-name" class="review-label">
-                    Nombre <span class="required-indicator" aria-hidden="true">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="review-author-name"
-                    name="name"
-                    class="review-input"
-                    required
-                    maxlength="70"
-                    placeholder="Tu nombre (obligatorio)"
-                    autocomplete="name"
-                  />
-                  <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre (2-70 caracteres).</span>
-                </div>
-
-                <div class="review-field field-email">
-                  <label for="review-author-email" class="review-label">
-                    Correo <span class="optional-tag">(opcional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    id="review-author-email"
-                    name="email"
-                    class="review-input"
-                    maxlength="100"
-                    placeholder="correo@mayor.cl"
-                    autocomplete="email"
-                  />
-                </div>
-              </div>
-
-              <!-- Fila Dedicada: Calificación en Estrellas 1 al 5 -->
-              <div class="review-field field-rating">
-                <fieldset class="rating-fieldset">
-                  <legend class="review-label">
-                    Calificación <span class="required-indicator" aria-hidden="true">*</span>
-                  </legend>
-                  <div
-                    class="star-rating-control"
-                    id="star-rating-control"
-                    role="radiogroup"
-                    aria-label="Calificación de 1 a 5 estrellas"
-                  >
-                    {[1, 2, 3, 4, 5].map((val) => (
-                      <label class="star-rating-label" data-value={val} title={`${val} de 5 estrellas`}>
-                        <input
-                          type="radio"
-                          name="rating"
-                          value={val}
-                          class="star-radio-input"
-                          required
-                          checked={val === 5}
-                        />
-                        <svg class="star-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                          <path
-                            fill="currentColor"
-                            d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                          />
-                        </svg>
-                        <span class="visually-hidden">{val} {val === 1 ? 'estrella' : 'estrellas'}</span>
-                      </label>
-                    ))}
-                    <span class="star-rating-desc" id="star-rating-desc" aria-live="polite">Me encantó!</span>
+            <div class="mask-reveal review-form-mask">
+              <div class="mask-reveal-inner">
+                <div class="review-form-card">
+                  <div class="review-form-header">
+                    <span class="review-form-title">DEJA UN COMENTARIO</span>
                   </div>
-                </fieldset>
-              </div>
 
-              <!-- Comentario -->
-              <div class="review-field field-comment">
-                <label for="review-comment-text" class="review-label">
-                  Comentario u opinión
-                </label>
-                <textarea
-                  id="review-comment-text"
-                  name="comment"
-                  class="review-textarea"
-                  rows="2"
-                  maxlength="600"
-                  placeholder="Comparte tus impresiones de lectura o claves de discusión..."
-                ></textarea>
-              </div>
+                  <!-- Fila: Nombre y Correo -->
+                  <div class="review-form-row">
+                    <div class="review-field field-name">
+                      <label for="review-author-name" class="review-label">
+                        Nombre <span class="required-indicator" aria-hidden="true">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="review-author-name"
+                        name="name"
+                        class="review-input"
+                        required
+                        maxlength="70"
+                        placeholder="Tu nombre (obligatorio)"
+                        autocomplete="name"
+                      />
+                      <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre (2-70 caracteres).</span>
+                    </div>
 
-              <!-- Botón y Estado -->
-              <div class="review-form-actions">
-                <button type="submit" class="review-submit-btn" id="review-submit-btn">
-                  <span class="submit-btn-text">Publicar Comentario</span>
-                  <svg class="submit-btn-arrow" viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
-                  </svg>
-                </button>
-                <span class="review-form-feedback" id="review-form-feedback" aria-live="polite"></span>
+                    <div class="review-field field-email">
+                      <label for="review-author-email" class="review-label">
+                        Correo <span class="optional-tag">(opcional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="review-author-email"
+                        name="email"
+                        class="review-input"
+                        maxlength="100"
+                        placeholder="correo@mayor.cl"
+                        autocomplete="email"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Fila Dedicada: Calificación en Estrellas 1 al 5 -->
+                  <div class="review-field field-rating">
+                    <fieldset class="rating-fieldset">
+                      <legend class="review-label">
+                        Calificación <span class="required-indicator" aria-hidden="true">*</span>
+                      </legend>
+                      <div
+                        class="star-rating-control"
+                        id="star-rating-control"
+                        role="radiogroup"
+                        aria-label="Calificación de 1 a 5 estrellas"
+                      >
+                        {[1, 2, 3, 4, 5].map((val) => (
+                          <label class="star-rating-label" data-value={val} title={`${val} de 5 estrellas`}>
+                            <input
+                              type="radio"
+                              name="rating"
+                              value={val}
+                              class="star-radio-input"
+                              required
+                              checked={val === 5}
+                            />
+                            <svg class="star-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                              <path
+                                fill="currentColor"
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                              />
+                            </svg>
+                            <span class="visually-hidden">{val} {val === 1 ? 'estrella' : 'estrellas'}</span>
+                          </label>
+                        ))}
+                        <span class="star-rating-desc" id="star-rating-desc" aria-live="polite">Me encantó!</span>
+                      </div>
+                    </fieldset>
+                  </div>
+
+                  <!-- Comentario -->
+                  <div class="review-field field-comment">
+                    <label for="review-comment-text" class="review-label">
+                      Comentario u opinión
+                    </label>
+                    <textarea
+                      id="review-comment-text"
+                      name="comment"
+                      class="review-textarea"
+                      rows="2"
+                      maxlength="600"
+                      placeholder="Comparte tus impresiones de lectura o claves de discusión..."
+                    ></textarea>
+                  </div>
+
+                  <!-- Botón y Estado -->
+                  <div class="review-form-actions">
+                    <button type="submit" class="review-submit-btn" id="review-submit-btn">
+                      <span class="submit-btn-text">Publicar Comentario</span>
+                      <svg class="submit-btn-arrow" viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
+                      </svg>
+                    </button>
+                    <span class="review-form-feedback" id="review-form-feedback" aria-live="polite"></span>
+                  </div>
+                </div>
               </div>
             </div>
           </form>
 
           <!-- Bitácora de Reseñas de los Miembros -->
-          <div class="reviews-catalog">
-            <div class="reviews-catalog-header">
-              <span class="reviews-catalog-title">OPINIÓN DE LECTORES</span>
-              <span class="reviews-catalog-count" id="reviews-catalog-count">0 registros</span>
-            </div>
-            <div class="reviews-stack" id="reviews-stack" role="feed" aria-busy="false">
-              <!-- Renderizado dinámicamente -->
+          <div class="mask-reveal reviews-catalog-mask">
+            <div class="mask-reveal-inner">
+              <div class="reviews-catalog">
+                <div class="reviews-catalog-header">
+                  <span class="reviews-catalog-title">OPINIÓN DE LECTORES</span>
+                  <span class="reviews-catalog-count" id="reviews-catalog-count">0 registros</span>
+                </div>
+                <div class="reviews-stack" id="reviews-stack" role="feed" aria-busy="false">
+                  <!-- Renderizado dinámicamente -->
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1005,19 +1013,23 @@ const initialBook = booksPayload[0];
           </svg>
 
           <!-- Sello Ex Libris Patrimonial SIBUM (Opción 2) -->
-          <div class="ficha-ex-libris" aria-hidden="true">
-            <img
-              src="/logo.svg"
-              alt=""
-              class="ex-libris-seal-img"
-              width="44"
-              height="44"
-              draggable="false"
-              decoding="async"
-            />
-            <div class="ex-libris-text">
-              <span class="ex-libris-tag">Club de Lectura</span>
-              <span class="ex-libris-sub">BIBLIOTECA UM · TEMUCO</span>
+          <div class="mask-reveal ex-libris-mask">
+            <div class="mask-reveal-inner">
+              <div class="ficha-ex-libris" aria-hidden="true">
+                <img
+                  src="/logo.svg"
+                  alt=""
+                  class="ex-libris-seal-img"
+                  width="44"
+                  height="44"
+                  draggable="false"
+                  decoding="async"
+                />
+                <div class="ex-libris-text">
+                  <span class="ex-libris-tag">Club de Lectura</span>
+                  <span class="ex-libris-sub">BIBLIOTECA UM · TEMUCO</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2254,12 +2266,15 @@ const initialBook = booksPayload[0];
     scrollbar-color: var(--rule-strong) transparent;
   }
 
-  .mask-reveal {
+  .mask-reveal,
+  :global(.mask-reveal),
+  .ficha-col-left :global(.mask-reveal) {
     overflow: hidden;
     display: block;
   }
 
   .mask-reveal-inner,
+  :global(.mask-reveal-inner),
   .ficha-col-left :global(.mask-reveal-inner) {
     display: block;
     will-change: transform;
@@ -2336,6 +2351,17 @@ const initialBook = booksPayload[0];
     color: var(--ink-muted);
   }
 
+  .ficha-synopsis-lines {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .ficha-synopsis-lines :global(.mask-reveal) {
+    overflow: hidden;
+    display: block;
+  }
+
   .ficha-synopsis-lines :global(.synopsis-sentence) {
     font-family: var(--font-editorial);
     font-size: 1.04rem;
@@ -2357,6 +2383,11 @@ const initialBook = booksPayload[0];
   /* Formulario Editorial de Registro */
   .review-form {
     width: 100%;
+  }
+
+  .review-form-mask {
+    padding: 2px 4px;
+    margin: -2px -4px;
   }
 
   .review-form-card {
@@ -2614,11 +2645,18 @@ const initialBook = booksPayload[0];
   }
 
   /* ================= LISTADO PROTAGÓNICO DE OPINIONES ================= */
+  .reviews-catalog-mask {
+    margin-top: 0.75rem;
+    padding: 2px 4px;
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+
   .reviews-catalog {
     display: flex;
     flex-direction: column;
     gap: 0.85rem;
-    margin-top: 0.75rem;
+    margin-top: 0;
   }
 
   .reviews-catalog-header {
@@ -2814,6 +2852,15 @@ const initialBook = booksPayload[0];
   }
 
   /* Sello Ex Libris Patrimonial SIBUM (Opción 2) */
+  .ex-libris-mask {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    padding: 4px 6px;
+    margin: -4px -6px;
+  }
+
   .ficha-ex-libris {
     display: inline-flex;
     align-items: center;
@@ -3428,6 +3475,8 @@ const initialBook = booksPayload[0];
   function createMaskedLine(text: string, innerClass: string, tag: 'p' | 'div' | 'h3' = 'p') {
     const outer = document.createElement('div');
     outer.className = 'mask-reveal';
+    outer.style.overflow = 'hidden';
+    outer.style.display = 'block';
     const inner = document.createElement(tag);
     inner.className = `mask-reveal-inner ${innerClass}`;
     inner.textContent = text;
@@ -3501,15 +3550,17 @@ const initialBook = booksPayload[0];
     nameGroup?.classList.remove('has-error');
 
     let reviews: MemberReview[] = [];
+    let serverConnected = false;
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 800);
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
       const res = await fetch(`/api/reviews?book=${bookIdx}&slug=${slug}`, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.ok) {
+        serverConnected = true;
         const data = await res.json();
-        if (Array.isArray(data.reviews) && data.reviews.length > 0) {
+        if (Array.isArray(data.reviews)) {
           reviews = data.reviews;
         }
       }
@@ -3517,7 +3568,7 @@ const initialBook = booksPayload[0];
       // Modo estático o sin conexión al worker
     }
 
-    if (reviews.length === 0) {
+    if (!serverConnected && reviews.length === 0) {
       const local = localStorage.getItem(`cl_reviews_${bookIdx}`);
       if (local) {
         try {
@@ -3821,6 +3872,7 @@ const initialBook = booksPayload[0];
     for (const item of allMaskInners) {
       item.getAnimations().forEach((a) => a.cancel());
       item.style.transform = 'translateY(115%)';
+      item.style.opacity = '0';
     }
 
     const rules = fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale');
@@ -3885,14 +3937,14 @@ const initialBook = booksPayload[0];
   }
 
   function animateFichaContentsIn(baseDelay = 0) {
-    const durLine = prefersReducedMotion ? 240 : 560;
-    const stagger = prefersReducedMotion ? 10 : 28;
+    const durLine = prefersReducedMotion ? 240 : 820;
+    const stagger = prefersReducedMotion ? 10 : 42;
 
     const rules = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale'));
     rules.forEach((rule, idx) => {
       rule.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
-        duration: prefersReducedMotion ? 220 : 620,
-        delay: baseDelay + idx * 70,
+        duration: prefersReducedMotion ? 220 : 880,
+        delay: baseDelay + idx * 105,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       });
@@ -3901,8 +3953,8 @@ const initialBook = booksPayload[0];
     const closeCircle = closeFichaBtn.querySelector<HTMLElement>('.ficha-close-circle');
     if (closeCircle) {
       closeCircle.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
-        duration: prefersReducedMotion ? 200 : 460,
-        delay: baseDelay + 60,
+        duration: prefersReducedMotion ? 200 : 620,
+        delay: baseDelay + 90,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       });
@@ -3910,19 +3962,25 @@ const initialBook = booksPayload[0];
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     allMaskInners.forEach((el, idx) => {
-      el.animate([{ transform: 'translateY(115%)' }, { transform: 'translateY(0%)' }], {
-        duration: durLine,
-        delay: baseDelay + Math.min(idx * stagger, 640),
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'forwards',
-      });
+      el.animate(
+        [
+          { transform: 'translateY(115%)', opacity: 0 },
+          { transform: 'translateY(0%)', opacity: 1 },
+        ],
+        {
+          duration: durLine,
+          delay: baseDelay + Math.min(idx * stagger, 980),
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          fill: 'forwards',
+        }
+      );
     });
 
     // Revelado orgánico de las 7 manchas de tinta SVG sobre el papel
     inkDrops.forEach((drop, idx) => {
       drop.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
-        duration: prefersReducedMotion ? 360 : 940 + idx * 105,
-        delay: baseDelay + (prefersReducedMotion ? 40 : 80 + idx * 72),
+        duration: prefersReducedMotion ? 360 : 1380 + idx * 140,
+        delay: baseDelay + (prefersReducedMotion ? 40 : 110 + idx * 95),
         easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
         fill: 'forwards',
       });
@@ -3948,7 +4006,7 @@ const initialBook = booksPayload[0];
     fichaScrollCol.scrollTop = 0;
     stageRoot.inert = true;
 
-    const sheetDuration = prefersReducedMotion ? 260 : 650;
+    const sheetDuration = prefersReducedMotion ? 260 : 920;
     const sheetAnim = fichaSheet.animate(
       [
         { clipPath: tilted },
@@ -3962,7 +4020,7 @@ const initialBook = booksPayload[0];
       }
     );
 
-    animateFichaContentsIn(prefersReducedMotion ? 90 : 300);
+    animateFichaContentsIn(prefersReducedMotion ? 90 : 420);
 
     sheetAnim.onfinish = () => {
       fichaSheet.style.clipPath = 'none';
@@ -3975,11 +4033,11 @@ const initialBook = booksPayload[0];
     if (!isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
 
-    const retractDur = prefersReducedMotion ? 150 : 260;
+    const retractDur = prefersReducedMotion ? 150 : 360;
 
     for (const drop of inkDrops) {
       drop.animate([{ transform: 'scale(1)' }, { transform: 'scale(0)' }], {
-        duration: retractDur + 40,
+        duration: retractDur + 50,
         easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
         fill: 'forwards',
       });
@@ -3987,11 +4045,17 @@ const initialBook = booksPayload[0];
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     for (const el of allMaskInners) {
-      el.animate([{ transform: 'translateY(0%)' }, { transform: 'translateY(115%)' }], {
-        duration: retractDur,
-        easing: 'cubic-bezier(0.4, 0, 1, 1)',
-        fill: 'forwards',
-      });
+      el.animate(
+        [
+          { transform: 'translateY(0%)', opacity: 1 },
+          { transform: 'translateY(115%)', opacity: 0 },
+        ],
+        {
+          duration: retractDur,
+          easing: 'cubic-bezier(0.4, 0, 1, 1)',
+          fill: 'forwards',
+        }
+      );
     }
 
     const { tilted, mid, full } = computeTiltedCoverPolygon();
@@ -4002,8 +4066,8 @@ const initialBook = booksPayload[0];
         { clipPath: tilted },
       ],
       {
-        duration: prefersReducedMotion ? 240 : 540,
-        delay: prefersReducedMotion ? 40 : 140,
+        duration: prefersReducedMotion ? 240 : 660,
+        delay: prefersReducedMotion ? 40 : 180,
         easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
         fill: 'forwards',
       }
@@ -4012,6 +4076,11 @@ const initialBook = booksPayload[0];
     foldAnim.onfinish = () => {
       fichaSheet.hidden = true;
       fichaSheet.getAnimations().forEach((a) => a.cancel());
+      allMaskInners.forEach((el) => {
+        el.getAnimations().forEach((a) => a.cancel());
+        el.style.transform = 'translateY(115%)';
+        el.style.opacity = '0';
+      });
       fichaSheet.style.clipPath = '';
       stageRoot.inert = false;
       isFichaOpen = false;
@@ -4039,7 +4108,7 @@ const initialBook = booksPayload[0];
     updateActiveBookUI(nextIdx, delta);
     populateFichaDOM(nextIdx);
     fichaScrollCol.scrollTop = 0;
-    animateFichaContentsIn(40);
+    animateFichaContentsIn(60);
   }
 
   // ================= EVENTOS DE INTERACCIÓN =================
