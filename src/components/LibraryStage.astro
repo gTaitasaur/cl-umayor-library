@@ -94,10 +94,21 @@ const booksPayload = renderedBooks.map((b) => {
   const computedThickness =
     b.data.thickness ?? Math.round(Math.min(82, Math.max(46, 38 + b.data.pages * 0.068)));
 
+  const titleLength = b.data.title.trim().length;
+  const titleTier =
+    titleLength <= 17
+      ? 'short'
+      : titleLength <= 25
+        ? 'medium'
+        : titleLength <= 31
+          ? 'long'
+          : 'xlong';
+
   return {
     index: b.index,
     slug: b.slug,
     title: b.data.title,
+    titleTier,
     author: b.data.author,
     year: b.data.year,
     month: b.data.month,
@@ -501,7 +512,12 @@ const initialBook = booksPayload[0];
                             <span class="spine-band" />
                           </span>
                           <span class="spine-body">
-                            <span class="spine-title">{book.title}</span>
+                            <span
+                              class={`spine-title spine-title--${book.titleTier}`}
+                              title={book.title}
+                            >
+                              {book.title}
+                            </span>
                           </span>
                           <span class="spine-foot">
                             <span class="spine-seal">
@@ -1618,12 +1634,13 @@ const initialBook = booksPayload[0];
   .spine-editorial {
     width: 100%;
     height: 100%;
-    padding: 13px 4px 12px;
+    padding: clamp(8px, 2vh, 13px) 3px clamp(7px, 1.8vh, 12px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     pointer-events: none;
+    box-sizing: border-box;
   }
 
   .spine-head,
@@ -1632,11 +1649,12 @@ const initialBook = booksPayload[0];
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: clamp(3px, 0.9vh, 6px);
+    flex-shrink: 0;
   }
 
   .spine-thumb-frame {
-    width: min(72%, 42px);
+    width: min(70%, clamp(26px, 6.5vw, 40px));
     aspect-ratio: 4 / 5;
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 1px;
@@ -1653,8 +1671,8 @@ const initialBook = booksPayload[0];
   }
 
   .spine-seal {
-    width: min(84%, 48px);
-    padding: 3px 2px 4px;
+    width: min(80%, clamp(30px, 7.5vw, 46px));
+    padding: clamp(2px, 0.5vh, 3.5px) 2px;
     border: 1px solid rgba(231, 205, 82, 0.48);
     color: var(--brand-gold-warm);
     display: flex;
@@ -1666,8 +1684,8 @@ const initialBook = booksPayload[0];
   }
 
   .spine-seal-logo {
-    width: clamp(16px, 1.6vw, 22px);
-    height: clamp(16px, 1.6vw, 22px);
+    width: clamp(14px, 1.5vw, 20px);
+    height: clamp(14px, 1.5vw, 20px);
     aspect-ratio: 1;
     object-fit: contain;
     border-radius: 50%;
@@ -1679,7 +1697,7 @@ const initialBook = booksPayload[0];
 
   .spine-seal-num {
     font-family: var(--font-mono);
-    font-size: 0.64rem;
+    font-size: clamp(0.54rem, 1.2vw, 0.64rem);
     font-weight: 600;
     letter-spacing: 0.04em;
     line-height: 1;
@@ -1690,7 +1708,7 @@ const initialBook = booksPayload[0];
 
   .spine-band {
     display: block;
-    width: min(68%, 38px);
+    width: min(65%, 36px);
     height: 1px;
     background: var(--brand-gold-warm);
     opacity: 0.55;
@@ -1699,10 +1717,11 @@ const initialBook = booksPayload[0];
   .spine-body {
     flex: 1;
     min-height: 0;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 0;
+    padding: clamp(4px, 1vh, 8px) 0;
     overflow: hidden;
   }
 
@@ -1710,12 +1729,35 @@ const initialBook = booksPayload[0];
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-family: var(--font-editorial);
-    font-size: 0.82rem;
     font-weight: 500;
-    letter-spacing: 0.04em;
     white-space: nowrap;
-    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
     max-height: 100%;
+    max-inline-size: 100%;
+    display: block;
+    line-height: 1;
+  }
+
+  /* Escala tipográfica adaptativa según la longitud del título */
+  .spine-title--short {
+    font-size: clamp(0.74rem, calc(var(--h, 392px) * 0.034), 0.84rem);
+    letter-spacing: 0.04em;
+  }
+
+  .spine-title--medium {
+    font-size: clamp(0.68rem, calc(var(--h, 392px) * 0.031), 0.77rem);
+    letter-spacing: 0.025em;
+  }
+
+  .spine-title--long {
+    font-size: clamp(0.62rem, calc(var(--h, 392px) * 0.028), 0.71rem);
+    letter-spacing: 0.015em;
+  }
+
+  .spine-title--xlong {
+    font-size: clamp(0.56rem, calc(var(--h, 392px) * 0.025), 0.64rem);
+    letter-spacing: 0.008em;
   }
 
   .spine-cloth-weave {
@@ -3554,7 +3596,7 @@ const initialBook = booksPayload[0];
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1800);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
       const res = await fetch(`/api/reviews?book=${bookIdx}&slug=${slug}`, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (res.ok) {
@@ -3730,7 +3772,7 @@ const initialBook = booksPayload[0];
     }
 
     // Heurística de cliente: Filtro preventivo de insultos o vocabulario soez
-    const profanityPattern = /\b(weon|weona|aweonao|culiao|culia|conchetumadre|conchesumadre|ctm|csm|maricon|mierda|puta|puto|hijo ?de ?puta|imbecil|estupido|tarado|porno|xxx|sexo|pene|vagina|tetas|verga|pija|follar|cojer|prostituta|escort)\b/i;
+    const profanityPattern = /\b(weon|weona|aweonao|culiao|culia|conchetumadre|conchesumadre|ctm|csm|maricon|mierda|puta|puto|hijo ?de ?puta|imbecil|estupido|tarado|porno|xxx|sexo|pene|vagina|tetas|verga|pija|follar|cojer|prostituta|escort|poto|tula|raja)\b/i;
     if (profanityPattern.test(nameVal) || profanityPattern.test(commentVal) || (emailVal && profanityPattern.test(emailVal))) {
       reviewFormFeedback.textContent = '✕ Por favor mantén un tono respetuoso. Se detectó vocabulario no permitido.';
       reviewFormFeedback.className = 'review-form-feedback is-error';
@@ -3758,7 +3800,7 @@ const initialBook = booksPayload[0];
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: {
@@ -3798,24 +3840,8 @@ const initialBook = booksPayload[0];
       return;
     }
 
-    // Éxito confirmado por el backend
-    const newReview: MemberReview = {
-      bookIndex: currentReviewBookIdx,
-      bookSlug: currentReviewBookSlug,
-      name: nameVal,
-      email: emailVal || null,
-      rating: ratingVal,
-      comment: commentVal,
-      createdAt: new Date().toISOString(),
-    };
-
-    try {
-      const currentStored = localStorage.getItem(`cl_reviews_${currentReviewBookIdx}`);
-      const list: MemberReview[] = currentStored ? JSON.parse(currentStored) : [];
-      list.unshift(newReview);
-      localStorage.setItem(`cl_reviews_${currentReviewBookIdx}`, JSON.stringify(list));
-      renderReviewsList(list);
-    } catch {}
+    // Éxito confirmado por el backend: recargar inmediatamente la lista oficial y completa desde D1
+    await loadAndDisplayReviews(currentReviewBookIdx, currentReviewBookSlug);
 
     reviewAuthorName.value = '';
     reviewAuthorEmail.value = '';

@@ -76,7 +76,7 @@ const inMemoryRateLimit = new Map<string, number>();
 
 const PROFANITY_PATTERNS: RegExp[] = [
   // 1. Modismos y groserías chilenas y regionales de alta agresividad
-  /\b(weon|weona|aweonao|aweona|huevon|huevona|culiao|culia|culi|qliao|qlo|conchetumadre|conchesumadre|conchatumadre|concha ?tu ?madre|concha ?de ?tu ?madre|ctm|csm|sacowea|chupalo|maricon|marica|chucha)\b/i,
+  /\b(weon|weona|aweonao|aweona|huevon|huevona|culiao|culia|culi|qliao|qlo|conchetumadre|conchesumadre|conchatumadre|concha ?tu ?madre|concha ?de ?tu ?madre|ctm|csm|sacowea|chupalo|maricon|marica|chucha|poto|tula|raja)\b/i,
 
   // 2. Insultos y descalificaciones directas
   /\b(mierda|puta|puto|puterio|hijo ?de ?puta|hdp|malparido|malparida|cabron|cabrona)\b/i,
@@ -366,7 +366,7 @@ export default {
 
         try {
           // Filtrado estricto por is_visible = 1 para no exponer comentarios en moderación o spam
-          let query = 'SELECT id, book_slug, book_index, name, rating, comment, created_at FROM reviews WHERE is_visible = 1';
+          let query = 'SELECT id, book_slug, book_index, name, email, rating, comment, created_at FROM reviews WHERE is_visible = 1';
           const params: (string | number)[] = [];
 
           if (slugParam) {
@@ -385,6 +385,7 @@ export default {
             bookSlug: r.book_slug,
             bookIndex: r.book_index,
             name: r.name,
+            email: r.email || null,
             rating: Number(r.rating),
             comment: r.comment || '',
             createdAt: r.created_at,
