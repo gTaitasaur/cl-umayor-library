@@ -14,8 +14,9 @@
     "deploy": "pnpm run build && wrangler deploy",
     "db:clean-orphans": "node scripts/purge-orphaned-reviews.mjs --remote",
     "db:clean-orphans:local": "node scripts/purge-orphaned-reviews.mjs --local",
-    "db:reset": "node scripts/reset-reviews.mjs --remote",
+    "db:reset": "node scripts/reset-reviews.mjs --local",
     "db:reset:local": "node scripts/reset-reviews.mjs --local",
+    "db:reset:remote": "node scripts/reset-reviews.mjs --remote",
     "astro": "astro"
   },
   "dependencies": {

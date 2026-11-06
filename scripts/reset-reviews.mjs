@@ -8,8 +8,8 @@ import { execSync } from 'node:child_process';
  * para el lanzamiento oficial.
  *
  * Uso:
- *   pnpm run db:reset          (Producción en Cloudflare D1)
- *   pnpm run db:reset:local    (Desarrollo local en .wrangler)
+ *   pnpm run db:reset          (Desarrollo local en .wrangler - Seguro por defecto)
+ *   pnpm run db:reset:remote   (Producción en Cloudflare D1 - Solo deliberado)
  */
 
 const isRemote = process.argv.includes('--remote');

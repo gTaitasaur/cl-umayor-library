@@ -806,7 +806,16 @@ const initialBook = booksPayload[0];
         <!-- Sección de Opiniones y Calificación de los Miembros del Club -->
         <section class="ficha-section ficha-reviews-section" aria-label="Opinión de Lectores">
           <!-- Formulario Editorial Compacto para registrar comentario y calificación -->
-          <form class="review-form" id="review-form" novalidate>
+          <form
+            class="review-form"
+            id="review-form"
+            novalidate
+            autocomplete="off"
+            data-bwignore="true"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
+          >
             <!-- Honeypot invisible para humanos (Trampa de seguridad anti-bot) -->
             <div
               class="review-hp-trap"
@@ -820,6 +829,9 @@ const initialBook = booksPayload[0];
                 name="hp_security_check"
                 tabindex="-1"
                 autocomplete="off"
+                data-bwignore="true"
+                data-1p-ignore="true"
+                data-lpignore="true"
                 value=""
               />
             </div>
@@ -845,7 +857,11 @@ const initialBook = booksPayload[0];
                         required
                         maxlength="70"
                         placeholder="Tu nombre (obligatorio)"
-                        autocomplete="name"
+                        autocomplete="off"
+                        data-bwignore="true"
+                        data-1p-ignore="true"
+                        data-lpignore="true"
+                        data-form-type="other"
                       />
                       <span class="field-error-msg" id="name-error-msg" aria-live="polite">Por favor ingresa tu nombre (2-70 caracteres).</span>
                     </div>
@@ -861,7 +877,11 @@ const initialBook = booksPayload[0];
                         class="review-input"
                         maxlength="100"
                         placeholder="correo@mayor.cl"
-                        autocomplete="email"
+                        autocomplete="off"
+                        data-bwignore="true"
+                        data-1p-ignore="true"
+                        data-lpignore="true"
+                        data-form-type="other"
                       />
                     </div>
                   </div>
@@ -887,6 +907,8 @@ const initialBook = booksPayload[0];
                               class="star-radio-input"
                               required
                               checked={val === 5}
+                              data-bwignore="true"
+                              data-1p-ignore="true"
                             />
                             <svg class="star-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                               <path
@@ -914,6 +936,10 @@ const initialBook = booksPayload[0];
                       rows="2"
                       maxlength="600"
                       placeholder="Comparte tus impresiones de lectura o claves de discusión..."
+                      autocomplete="off"
+                      data-bwignore="true"
+                      data-1p-ignore="true"
+                      data-lpignore="true"
                     ></textarea>
                   </div>
 
