@@ -682,7 +682,7 @@ const initialBook = booksPayload[0];
     <div class="ficha-topbar">
       <div class="mask-reveal">
         <div class="mask-reveal-inner ficha-kicker" id="ficha-folio-code">
-          REGISTRO DE LECTURA · Nº 01
+          REGISTRO · Nº 01
         </div>
       </div>
 
@@ -3955,7 +3955,7 @@ const initialBook = booksPayload[0];
     const book = books[bookIdx];
     if (!book) return;
 
-    fichaFolioCode.textContent = `REGISTRO DE LECTURA · Nº ${String(bookIdx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
+    fichaFolioCode.textContent = `REGISTRO · Nº ${String(bookIdx + 1).padStart(2, '0')} / ${String(N).padStart(2, '0')}`;
     fichaSeasonTag.textContent = `TEMPORADA ${book.year} · ${book.monthName.toUpperCase()}`;
     fichaBookTitle.textContent = book.title;
     const extraOrigin = [book.country, book.publishedYear].filter(Boolean).join(', ');
@@ -4435,27 +4435,54 @@ const initialBook = booksPayload[0];
 
   // Teclado: ArrowLeft / ArrowRight, Enter y Escape
   window.addEventListener('keydown', (e) => {
+    const target = e.target as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    const isEditingText =
+      (target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.closest('.review-form') !== null)) ||
+      (active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.isContentEditable ||
+          active.closest('.review-form') !== null));
+
     if (isFichaOpen) {
       if (e.key === 'Escape') {
         e.preventDefault();
         closeFicha();
-      } else if (e.key === 'ArrowLeft') {
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        // Si el usuario está escribiendo o interactuando en la sección "DEJA UN COMENTARIO",
+        // no cambiar de libro para que las flechas muevan el cursor de texto normalmente.
+        if (isEditingText) {
+          return;
+        }
         e.preventDefault();
-        switchBookInsideFicha(-1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        switchBookInsideFicha(1);
+        if (e.key === 'ArrowLeft') {
+          switchBookInsideFicha(-1);
+        } else {
+          switchBookInsideFicha(1);
+        }
       }
       return;
     }
 
-    if (e.key === 'ArrowLeft') {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      if (isEditingText) {
+        return;
+      }
       e.preventDefault();
-      stepBy(-1);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      stepBy(1);
+      if (e.key === 'ArrowLeft') {
+        stepBy(-1);
+      } else {
+        stepBy(1);
+      }
     } else if (e.key === 'Enter') {
+      if (isEditingText) {
+        return;
+      }
       const activeEl = document.activeElement as HTMLElement | null;
       if (
         !activeEl ||

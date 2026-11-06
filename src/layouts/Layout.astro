@@ -2,12 +2,16 @@
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
 }
 
 const {
-  title = 'Club de Lectura · Archivo Editorial 3D',
-  description = 'Biblioteca interactiva 3D del Club de Lectura organizada cronológicamente por años y meses.',
+  title = 'Club de Lectura UM - Temuco',
+  description = 'Explora nuestra estantería 3D y descubre los libros leídos en el Club de Lectura UM. Revisa fichas técnicas, sinopsis y comentarios de cada obra.',
+  image = '/og-image.png',
 } = Astro.props;
+
+const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
 ---
 
 <!doctype html>
@@ -17,10 +21,31 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
     <meta name="theme-color" content="#F2EDE2" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Favicon e Iconos (Vectoriales y Nítidos a partir del emblema maestro) -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+
+    <!-- Open Graph / Redes Sociales (WhatsApp, LinkedIn, Facebook, Discord, Telegram) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Club de Lectura UM · Temuco" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Club de Lectura UM - Archivo Editorial 3D" />
+    <meta property="og:locale" content="es_CL" />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+
     <title>{title}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
