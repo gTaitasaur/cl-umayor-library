@@ -671,6 +671,7 @@ const initialBook = booksPayload[0];
   id="ficha-sheet"
   role="dialog"
   aria-labelledby="ficha-book-title"
+  tabindex="-1"
   hidden
 >
   <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
@@ -693,15 +694,13 @@ const initialBook = booksPayload[0];
         aria-label="Cerrar ficha de lectura"
         data-cursor="compact"
       >
-        <span class="mask-reveal">
-          <span class="mask-reveal-inner ficha-close-text">CERRAR [ESC]</span>
-        </span>
+        <span class="ficha-close-text">CERRAR <span class="ficha-esc-hint">[ESC]</span></span>
         <span class="ficha-close-circle" aria-hidden="true">
-          <svg viewBox="0 0 20 20" width="14" height="14">
+          <svg viewBox="0 0 20 20" width="13" height="13">
             <path
               d="M5 5L15 15M15 5L5 15"
               stroke="currentColor"
-              stroke-width="1.6"
+              stroke-width="1.8"
               stroke-linecap="round"
             ></path>
           </svg>
@@ -779,6 +778,9 @@ const initialBook = booksPayload[0];
           <div class="ficha-synopsis-lines" id="ficha-synopsis-lines"></div>
         </section>
 
+        <!-- Línea superior animada de navegación -->
+        <div class="ficha-rule-scale ficha-nav-rule-top" aria-hidden="true"></div>
+
         <!-- Navegación entre meses desde dentro del pliego (Inmediatamente debajo de la Sinopsis) -->
         <nav class="ficha-sheet-nav" aria-label="Navegación entre meses del catálogo">
           <button
@@ -802,6 +804,9 @@ const initialBook = booksPayload[0];
             </span>
           </button>
         </nav>
+
+        <!-- Línea inferior animada de navegación -->
+        <div class="ficha-rule-scale ficha-nav-rule-bottom" aria-hidden="true"></div>
 
         <!-- Sección de Opiniones y Calificación de los Miembros del Club -->
         <section class="ficha-section ficha-reviews-section" aria-label="Opinión de Lectores">
@@ -2313,6 +2318,10 @@ const initialBook = booksPayload[0];
     display: none;
   }
 
+  .ficha-sheet:focus {
+    outline: none;
+  }
+
   .ficha-inner {
     position: relative;
     z-index: 4;
@@ -2343,24 +2352,73 @@ const initialBook = booksPayload[0];
   .ficha-close-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.65rem;
-    min-block-size: 38px;
-    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+    height: 38px;
+    padding: 0 0.45rem 0 0.85rem;
+    border: 2px solid var(--cobalt);
+    border-radius: 0;
+    background: transparent;
     font-family: var(--font-mono);
     font-size: 0.72rem;
+    font-weight: 500;
     letter-spacing: 0.14em;
     color: var(--ink);
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: center;
+    line-height: 1;
+    cursor: pointer;
+    will-change: transform, opacity;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .ficha-close-btn:hover {
+    background: transparent;
+    border-color: var(--cobalt);
+    color: var(--cobalt);
+  }
+
+  .ficha-close-btn:focus,
+  .ficha-close-btn:focus-visible {
+    outline: none;
+  }
+
+  .ficha-close-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+  }
+
+  .ficha-esc-hint {
+    font-size: 0.65rem;
+    color: var(--ink-muted);
+    transition: color 0.2s ease;
+  }
+
+  .ficha-close-btn:hover .ficha-esc-hint {
+    color: var(--cobalt);
   }
 
   .ficha-close-circle {
-    width: 34px;
-    height: 34px;
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
     border-radius: 50%;
-    border: 1px solid var(--ink);
+    border: 1px solid currentColor;
     display: grid;
     place-items: center;
-    transform-origin: center;
-    will-change: transform;
+    flex-shrink: 0;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .ficha-close-btn:hover .ficha-close-circle {
+    transform: rotate(90deg);
+    background-color: var(--cobalt);
+    border-color: var(--cobalt);
+    color: var(--paper-sheet);
   }
 
   .ficha-rule-scale {
@@ -2503,9 +2561,8 @@ const initialBook = booksPayload[0];
 
   /* ================= SECCIÓN DE OPINIONES Y CALIFICACIONES DEL CLUB ================= */
   .ficha-reviews-section {
-    margin-top: 0.75rem;
-    padding-top: 1.15rem;
-    border-top: 1px dashed rgba(54, 84, 95, 0.28);
+    margin-top: 0;
+    padding-top: 0.25rem;
     display: flex;
     flex-direction: column;
     gap: 1.15rem;
@@ -2923,15 +2980,28 @@ const initialBook = booksPayload[0];
     border-radius: 2px;
   }
 
+  .ficha-nav-rule-top {
+    margin-top: 0.75rem;
+    margin-bottom: 0.15rem;
+    background: var(--rule);
+  }
+
   .ficha-sheet-nav {
-    margin-top: 0.35rem;
-    padding-top: 0.85rem;
+    margin-top: 0;
+    padding-top: 0.25rem;
     padding-bottom: 0.25rem;
-    border-top: 1px solid var(--rule);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+  }
+
+  .ficha-nav-rule-bottom {
+    margin-top: 0.15rem;
+    margin-bottom: 0.75rem;
+    height: 0;
+    background: none;
+    border-top: 1px dashed rgba(54, 84, 95, 0.28);
   }
 
   .sheet-step-btn {
@@ -3186,6 +3256,28 @@ const initialBook = booksPayload[0];
       bottom: 8px;
       right: 12px;
       font-size: 0.54rem;
+    }
+
+    .ficha-topbar {
+      gap: 0.5rem;
+    }
+
+    .ficha-esc-hint {
+      display: none;
+    }
+
+    .ficha-close-btn {
+      height: 34px;
+      padding: 0 0.35rem 0 0.65rem;
+      font-size: 0.66rem;
+      gap: 0.45rem;
+    }
+
+    .ficha-close-circle {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      min-height: 24px;
     }
   }
 </style>
@@ -4025,6 +4117,10 @@ const initialBook = booksPayload[0];
       r.style.transform = 'scaleX(0)';
     }
 
+    closeFichaBtn.getAnimations().forEach((a) => a.cancel());
+    closeFichaBtn.style.transform = 'translateY(12px)';
+    closeFichaBtn.style.opacity = '0';
+
     for (const drop of inkDrops) {
       drop.getAnimations().forEach((a) => a.cancel());
       drop.style.transform = 'scale(0)';
@@ -4086,23 +4182,33 @@ const initialBook = booksPayload[0];
 
     const rules = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale'));
     rules.forEach((rule, idx) => {
-      rule.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], {
-        duration: prefersReducedMotion ? 220 : 880,
-        delay: baseDelay + idx * 105,
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        fill: 'forwards',
-      });
+      rule.animate(
+        [
+          { transform: 'scaleX(0)', opacity: 0 },
+          { transform: 'scaleX(1)', opacity: 1 },
+        ],
+        {
+          duration: prefersReducedMotion ? 220 : 880,
+          delay: baseDelay + idx * 75,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'forwards',
+        }
+      );
     });
 
-    const closeCircle = closeFichaBtn.querySelector<HTMLElement>('.ficha-close-circle');
-    if (closeCircle) {
-      closeCircle.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
+    closeFichaBtn.getAnimations().forEach((a) => a.cancel());
+    closeFichaBtn.animate(
+      [
+        { transform: 'translateY(12px)', opacity: 0 },
+        { transform: 'translateY(0)', opacity: 1 },
+      ],
+      {
         duration: prefersReducedMotion ? 200 : 620,
-        delay: baseDelay + 90,
-        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        delay: baseDelay + 40,
+        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
         fill: 'forwards',
-      });
-    }
+      }
+    );
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     allMaskInners.forEach((el, idx) => {
@@ -4169,7 +4275,7 @@ const initialBook = booksPayload[0];
     sheetAnim.onfinish = () => {
       fichaSheet.style.clipPath = 'none';
       isFichaAnimating = false;
-      closeFichaBtn.focus({ preventScroll: true });
+      fichaSheet.focus({ preventScroll: true });
     };
   }
 
@@ -4202,6 +4308,34 @@ const initialBook = booksPayload[0];
       );
     }
 
+    const rules = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale'));
+    for (const rule of rules) {
+      rule.animate(
+        [
+          { transform: 'scaleX(1)', opacity: 1 },
+          { transform: 'scaleX(0)', opacity: 0 },
+        ],
+        {
+          duration: retractDur,
+          easing: 'cubic-bezier(0.4, 0, 1, 1)',
+          fill: 'forwards',
+        }
+      );
+    }
+
+    closeFichaBtn.getAnimations().forEach((a) => a.cancel());
+    closeFichaBtn.animate(
+      [
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translateY(12px)', opacity: 0 },
+      ],
+      {
+        duration: retractDur,
+        easing: 'cubic-bezier(0.4, 0, 1, 1)',
+        fill: 'forwards',
+      }
+    );
+
     const { tilted, mid, full } = computeTiltedCoverPolygon();
     const foldAnim = fichaSheet.animate(
       [
@@ -4225,6 +4359,14 @@ const initialBook = booksPayload[0];
         el.style.transform = 'translateY(115%)';
         el.style.opacity = '0';
       });
+      rules.forEach((r) => {
+        r.getAnimations().forEach((a) => a.cancel());
+        r.style.transform = 'scaleX(0)';
+        r.style.opacity = '0';
+      });
+      closeFichaBtn.getAnimations().forEach((a) => a.cancel());
+      closeFichaBtn.style.transform = 'translateY(12px)';
+      closeFichaBtn.style.opacity = '0';
       fichaSheet.style.clipPath = '';
       stageRoot.inert = false;
       isFichaOpen = false;
@@ -4545,9 +4687,28 @@ const initialBook = booksPayload[0];
   });
 
   // ================= ÚNICO BUCLE MAESTRO requestAnimationFrame =================
+  let rafId: number | null = null;
+  let isLoopRunning = false;
   let lastFrameTime = performance.now();
 
+  function startLoop() {
+    if (isLoopRunning) return;
+    isLoopRunning = true;
+    lastFrameTime = performance.now();
+    rafId = requestAnimationFrame(masterLoop);
+  }
+
+  function stopLoop() {
+    isLoopRunning = false;
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
   function masterLoop(now: number) {
+    if (!isLoopRunning) return;
+
     const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.05);
     lastFrameTime = now;
 
@@ -4735,8 +4896,31 @@ const initialBook = booksPayload[0];
       cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
     }
 
-    requestAnimationFrame(masterLoop);
+    rafId = requestAnimationFrame(masterLoop);
   }
+
+  // Suspender el ciclo de animación cuando la pestaña esté oculta para no consumir CPU/GPU
+  // y reanudarlo con un cuadro de tiempo limpio al volver (evita congelamientos en Firefox/Chromium).
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopLoop();
+      isDragging = false;
+      activePointerId = null;
+      targetTiltX = 0;
+      targetTiltY = 0;
+      setCursorMode('default');
+    } else {
+      startLoop();
+    }
+  });
+
+  window.addEventListener('blur', () => {
+    isDragging = false;
+    activePointerId = null;
+    targetTiltX = 0;
+    targetTiltY = 0;
+    setCursorMode('default');
+  });
 
   measureGeometry();
   document.fonts?.ready.then(() => measureGeometry());
@@ -4744,5 +4928,5 @@ const initialBook = booksPayload[0];
   resizeObserver.observe(document.documentElement);
   resizeObserver.observe(sizeProbe);
 
-  requestAnimationFrame(masterLoop);
+  startLoop();
 </script>
