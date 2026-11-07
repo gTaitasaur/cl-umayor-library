@@ -17,7 +17,9 @@ const {
   bodyClass = '',
 } = Astro.props;
 
-const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
+const siteURL = Astro.site ?? new URL('https://cl-umayor-library.gtaitasaur.workers.dev');
+const ogImageURL = new URL(image, siteURL).href;
+const canonicalURL = new URL(Astro.url.pathname, siteURL).href;
 ---
 
 <!doctype html>
@@ -28,6 +30,7 @@ const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
     <meta name="description" content={description} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     {metaRefresh && <meta http-equiv="refresh" content={metaRefresh} />}
+    <link rel="canonical" href={canonicalURL} />
     <meta name="theme-color" content="#F2EDE2" />
 
     <!-- Favicon e Iconos (Vectoriales y Nítidos a partir del emblema maestro) -->
@@ -40,9 +43,12 @@ const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
     <!-- Open Graph / Redes Sociales (WhatsApp, LinkedIn, Facebook, Discord, Telegram) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Club de Lectura UM · Temuco" />
+    <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:secure_url" content={ogImageURL} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Club de Lectura UM - Archivo Editorial 3D" />
@@ -50,6 +56,7 @@ const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
 
     <!-- Twitter / X Cards -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageURL} />

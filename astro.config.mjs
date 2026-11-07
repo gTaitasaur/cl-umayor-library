@@ -1,6 +1,7 @@
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
+  site: 'https://cl-umayor-library.gtaitasaur.workers.dev',
   output: 'static',
   build: {
     assets: '_astro',
