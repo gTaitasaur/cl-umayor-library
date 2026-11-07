@@ -3,12 +3,18 @@ interface Props {
   title?: string;
   description?: string;
   image?: string;
+  metaRefresh?: string;
+  noindex?: boolean;
+  bodyClass?: string;
 }
 
 const {
   title = 'Club de Lectura UM - Temuco',
   description = 'Explora nuestra estantería 3D y descubre los libros leídos en el Club de Lectura UM. Revisa fichas técnicas, sinopsis y comentarios de cada obra.',
   image = '/og-image.png',
+  metaRefresh,
+  noindex = false,
+  bodyClass = '',
 } = Astro.props;
 
 const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
@@ -20,6 +26,8 @@ const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {metaRefresh && <meta http-equiv="refresh" content={metaRefresh} />}
     <meta name="theme-color" content="#F2EDE2" />
 
     <!-- Favicon e Iconos (Vectoriales y Nítidos a partir del emblema maestro) -->
@@ -51,11 +59,11 @@ const ogImageURL = Astro.site ? new URL(image, Astro.site).href : image;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500;1,6..72,600&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body>
+  <body class={bodyClass || undefined}>
     <slot />
   </body>
 </html>

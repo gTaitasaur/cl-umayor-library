@@ -1,0 +1,425 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="404 · Registro no encontrado | Club de Lectura UM"
+  description="La página que buscas no existe o ha sido movida. Regresa a la estantería 3D del Club de Lectura de la Universidad Mayor."
+  metaRefresh="6;url=/"
+  noindex={true}
+  bodyClass="page-404-body"
+>
+  <main class="page-404">
+    <!-- Marco y viñeta de papel editorial -->
+    <div class="editorial-vignette" aria-hidden="true"></div>
+
+    <div class="card-404">
+      <!-- Encabezado Institucional -->
+      <header class="header-404">
+        <div class="logo-wrap">
+          <img
+            src="/logo.svg"
+            alt="Logo SIBUM Universidad Mayor"
+            width="36"
+            height="36"
+            class="logo-sibum"
+          />
+        </div>
+        <div class="header-meta">
+          <span class="mono-tag">CLUB DE LECTURA · SEDE TEMUCO</span>
+          <span class="univ-tag">SISTEMA DE BIBLIOTECAS UNIVERSIDAD MAYOR</span>
+        </div>
+      </header>
+
+      <div class="rule-divider" aria-hidden="true">
+        <span class="rule-line"></span>
+        <span class="rule-diamond">◆</span>
+        <span class="rule-line"></span>
+      </div>
+
+      <!-- Cuerpo del error 404 -->
+      <section class="content-404">
+        <h1 class="title-404">
+          <span class="big-num">404</span>
+          <span class="heading-text">Página extraviada del catálogo</span>
+        </h1>
+
+        <p class="desc-404">
+          El tomo o enlace que intentas abrir no figura en nuestros archivos.
+          Es posible que la dirección esté mal escrita o que este volumen pertenezca a otra colección.
+        </p>
+      </section>
+
+      <!-- Barra de progreso de redirección automática -->
+      <div class="redirect-progress-bar" aria-hidden="true" title="Tiempo antes de redirección automática">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+
+      <!-- Acciones de Navegación -->
+      <footer class="footer-404">
+        <a href="/" class="btn-home" id="btn-home" autofocus>
+          <svg
+            class="btn-arrow"
+            viewBox="0 0 16 16"
+            width="14"
+            height="14"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"
+            />
+          </svg>
+          <span>Volver a la Estantería</span>
+        </a>
+
+        <div class="auto-redirect-note" aria-live="polite">
+          Redirigiendo a la portada principal en <strong id="countdown-sec">6</strong> segundos…
+        </div>
+
+        <div class="shortcut-hint">
+          <kbd class="kbd-key">Enter</kbd> o <kbd class="kbd-key">Esc</kbd> para volver de inmediato
+        </div>
+      </footer>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const countdownEl = document.getElementById('countdown-sec');
+  const progressFill = document.getElementById('progress-fill');
+  const btnHome = document.getElementById('btn-home');
+
+  let secondsLeft = 6;
+  const totalSeconds = 6;
+
+  // Iniciar animación suave de la barra de progreso
+  if (progressFill) {
+    progressFill.style.transition = `transform ${totalSeconds}s linear`;
+    requestAnimationFrame(() => {
+      progressFill.style.transform = 'scaleX(0)';
+    });
+  }
+
+  // Cuenta regresiva por segundo
+  const timer = setInterval(() => {
+    secondsLeft -= 1;
+    if (countdownEl) {
+      countdownEl.textContent = String(Math.max(0, secondsLeft));
+    }
+
+    if (secondsLeft <= 0) {
+      clearInterval(timer);
+      window.location.href = '/';
+    }
+  }, 1000);
+
+  // Navegación inmediata por teclado
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.key === 'Enter') {
+      clearInterval(timer);
+      window.location.href = '/';
+    }
+  });
+
+  btnHome?.addEventListener('click', () => {
+    clearInterval(timer);
+  });
+</script>
+
+<style>
+  :global(body.page-404-body) {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-404 {
+    position: relative;
+    width: 100%;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1.2rem, 4vw, 2.8rem);
+    background-color: var(--paper-bg);
+  }
+
+  .editorial-vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0%,
+      rgba(228, 220, 203, 0.45) 55%,
+      rgba(24, 20, 15, 0.08) 100%
+    );
+  }
+
+  .card-404 {
+    position: relative;
+    z-index: 10;
+    width: min(100%, 520px);
+    background: var(--paper-sheet);
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    padding: clamp(1.8rem, 5vw, 2.8rem);
+    box-shadow:
+      0 2px 4px rgba(24, 20, 15, 0.04),
+      0 12px 32px rgba(24, 20, 15, 0.08),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    user-select: text;
+    -webkit-user-select: text;
+    animation: fadeInCard 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+
+  @keyframes fadeInCard {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Encabezado */
+  .header-404 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .logo-wrap {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(12, 116, 124, 0.06);
+    border: 1px solid rgba(12, 116, 124, 0.18);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .logo-sibum {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+  }
+
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .mono-tag {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    color: var(--brand-petrol);
+  }
+
+  .univ-tag {
+    font-family: var(--font-sans);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+  }
+
+  /* Filete editorial divisor */
+  .rule-divider {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1.3rem 0;
+    color: var(--brand-petrol-soft);
+    opacity: 0.75;
+  }
+
+  .rule-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--rule-strong) 40%,
+      var(--rule-strong) 60%,
+      transparent 100%
+    );
+  }
+
+  .rule-diamond {
+    font-size: 0.58rem;
+    color: var(--brand-gold-warm);
+    transform: rotate(45deg);
+  }
+
+  /* Cuerpo */
+  .content-404 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .title-404 {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .big-num {
+    font-family: var(--font-display);
+    font-size: clamp(3.8rem, 11vw, 5.2rem);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    text-shadow: 0 1px 2px rgba(24, 20, 15, 0.06);
+  }
+
+  .heading-text {
+    font-family: var(--font-editorial);
+    font-size: clamp(1.2rem, 3.2vw, 1.45rem);
+    font-weight: 600;
+    font-style: italic;
+    color: var(--brand-crimson);
+    letter-spacing: -0.01em;
+  }
+
+  .desc-404 {
+    font-family: var(--font-editorial);
+    font-size: clamp(0.92rem, 2.2vw, 1rem);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 42ch;
+    margin-top: 0.25rem;
+  }
+
+  /* Barra de progreso de redirección */
+  .redirect-progress-bar {
+    width: 100%;
+    height: 2px;
+    background: rgba(54, 84, 95, 0.12);
+    border-radius: 1px;
+    margin: 1.6rem 0 1.2rem;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--brand-petrol), var(--brand-gold-warm));
+    transform-origin: left center;
+    transform: scaleX(1);
+  }
+
+  /* Pie y botón */
+  .footer-404 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .btn-home {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.72rem 1.6rem;
+    background-color: var(--brand-petrol);
+    color: #ffffff;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    border-radius: 3px;
+    box-shadow:
+      0 1px 3px rgba(12, 116, 124, 0.2),
+      0 4px 12px rgba(12, 116, 124, 0.16);
+    transition:
+      background-color 0.2s ease,
+      transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 0.2s ease;
+  }
+
+  .btn-home:hover {
+    background-color: var(--brand-petrol-deep);
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 6px rgba(12, 116, 124, 0.25),
+      0 6px 16px rgba(12, 116, 124, 0.2);
+  }
+
+  .btn-home:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(12, 116, 124, 0.2);
+  }
+
+  .btn-arrow {
+    transition: transform 0.2s ease;
+  }
+
+  .btn-home:hover .btn-arrow {
+    transform: translateX(-3px);
+  }
+
+  .auto-redirect-note {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted);
+  }
+
+  .auto-redirect-note strong {
+    color: var(--brand-petrol);
+    font-weight: 600;
+  }
+
+  .shortcut-hint {
+    font-family: var(--font-sans);
+    font-size: 0.65rem;
+    letter-spacing: 0.02em;
+    color: var(--ink-muted);
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .kbd-key {
+    display: inline-block;
+    padding: 1px 5px;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink-soft);
+    background-color: var(--paper-bg);
+    border: 1px solid var(--rule-strong);
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+  }
+</style>
