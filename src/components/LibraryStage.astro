@@ -2482,6 +2482,7 @@ const initialBook = booksPayload[0];
   .ficha-synopsis-lines {
     display: flex;
     flex-direction: column;
+    gap: 0.95rem;
     overflow: hidden;
   }
 
@@ -2490,12 +2491,14 @@ const initialBook = booksPayload[0];
     display: block;
   }
 
+  .ficha-synopsis-lines :global(.synopsis-paragraph),
   .ficha-synopsis-lines :global(.synopsis-sentence) {
     font-family: var(--font-editorial);
     font-size: 1.04rem;
-    line-height: 1.62;
+    line-height: 1.68;
     color: var(--ink-soft);
-    margin-bottom: 0.45rem;
+    margin: 0;
+    text-wrap: pretty;
   }
 
   /* ================= SECCIÓN DE OPINIONES Y CALIFICACIONES DEL CLUB ================= */
@@ -3602,9 +3605,11 @@ const initialBook = booksPayload[0];
   }
 
   // ================= APERTURA Y CIERRE DE FICHA TÉCNICA =================
-  function splitIntoSentences(text: string): string[] {
-    const matches = text.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g);
-    return matches ? matches.map((s) => s.trim()).filter(Boolean) : [text];
+  function splitIntoParagraphs(text: string): string[] {
+    return text
+      .split(/\r?\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 
   function createMaskedLine(text: string, innerClass: string, tag: 'p' | 'div' | 'h3' = 'p') {
@@ -3992,10 +3997,10 @@ const initialBook = booksPayload[0];
     metaGenre.textContent = `${book.genre} · ${book.pages} págs.`;
     metaRating.textContent = `★ Calculando...`;
 
-    // Sinopsis línea por línea en máscaras
+    // Sinopsis en párrafos fluidos editoriales con máscaras de revelado
     fichaSynopsisLines.replaceChildren();
-    for (const sentence of splitIntoSentences(book.synopsis)) {
-      fichaSynopsisLines.appendChild(createMaskedLine(sentence, 'synopsis-sentence'));
+    for (const paragraph of splitIntoParagraphs(book.synopsis)) {
+      fichaSynopsisLines.appendChild(createMaskedLine(paragraph, 'synopsis-paragraph'));
     }
 
     // Cargar y mostrar las opiniones de los miembros para este libro
