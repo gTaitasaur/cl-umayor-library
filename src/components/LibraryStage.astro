@@ -1218,7 +1218,7 @@ const initialBook = booksPayload[0];
     gap: 0.85rem;
     text-decoration: none;
     color: inherit;
-    cursor: pointer;
+    cursor: default;
     outline: none;
   }
 
@@ -1569,7 +1569,7 @@ const initialBook = booksPayload[0];
 
   .book-face--front,
   .book-face--spine {
-    cursor: pointer;
+    cursor: default;
     pointer-events: auto;
   }
 
@@ -2368,7 +2368,7 @@ const initialBook = booksPayload[0];
     flex-shrink: 0;
     align-self: center;
     line-height: 1;
-    cursor: pointer;
+    cursor: default;
     will-change: transform, opacity;
     transition: color 0.2s ease, border-color 0.2s ease;
   }
@@ -4522,9 +4522,18 @@ const initialBook = booksPayload[0];
       if (isFichaOpen) {
         targetTiltX = 0;
         targetTiltY = 0;
+        const isText = targetEl?.closest('input, textarea, [contenteditable="true"]');
+        if (isText) {
+          customCursor.style.opacity = '0';
+          return;
+        } else {
+          customCursor.style.opacity = '1';
+        }
         setCursorMode(targetEl?.closest('[data-cursor="compact"], button, a') ? 'compact' : 'default');
         return;
       }
+
+      customCursor.style.opacity = '1';
 
       if (isDragging && pointerMovedPx > 5) {
         targetTiltX = 0;

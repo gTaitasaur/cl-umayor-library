@@ -164,9 +164,14 @@ const canonicalURL = new URL(Astro.url.pathname, siteURL).href;
 
   @media (pointer: fine) {
     body.has-custom-cursor,
-    body.has-custom-cursor button,
-    body.has-custom-cursor a {
-      cursor: none;
+    body.has-custom-cursor * {
+      cursor: none !important;
+    }
+
+    body.has-custom-cursor input:not([type="button"]):not([type="submit"]):not([type="reset"]),
+    body.has-custom-cursor textarea,
+    body.has-custom-cursor [contenteditable="true"] {
+      cursor: text !important;
     }
   }
 </style>
