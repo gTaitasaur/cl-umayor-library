@@ -554,6 +554,20 @@ const initialBook = booksPayload[initialIndex];
                     {/* 6. Contraportada en Tela Editorial */}
                     <span class="book-face book-face--back" aria-hidden="true" />
 
+                    {/* Ficha catalográfica 3D alojada entre las páginas del ejemplar */}
+                    <span class="book-face book-catalog-card" aria-hidden="true">
+                      <span class="catalog-card-band" />
+                      <span class="catalog-card-rules">
+                        <span class="catalog-card-rule catalog-card-rule--crimson" />
+                        <span class="catalog-card-rule" />
+                        <span class="catalog-card-rule" />
+                        <span class="catalog-card-rule" />
+                        <span class="catalog-card-rule" />
+                        <span class="catalog-card-rule catalog-card-rule--short" />
+                      </span>
+                      <span class="catalog-card-hole" />
+                    </span>
+
                     {/* Sellado interior del lomo contra fugas de luz en ángulos rasantes */}
                     <span class="book-spine-backer" aria-hidden="true" />
 
@@ -682,7 +696,21 @@ const initialBook = booksPayload[initialIndex];
     <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
   </svg>
 
-  <div class="ficha-inner">
+  <!-- Rayado de tarjeta catalográfica visible mientras la ficha entra o sale del ejemplar 3D -->
+  <div class="ficha-card-watermark" id="ficha-card-watermark" aria-hidden="true">
+    <div class="watermark-top-band"></div>
+    <div class="watermark-rules">
+      <span class="watermark-rule watermark-rule--crimson"></span>
+      <span class="watermark-rule"></span>
+      <span class="watermark-rule"></span>
+      <span class="watermark-rule"></span>
+      <span class="watermark-rule"></span>
+      <span class="watermark-rule watermark-rule--short"></span>
+    </div>
+    <div class="watermark-hole"></div>
+  </div>
+
+  <div class="ficha-inner" id="ficha-inner">
     <!-- Barra Superior del Pliego -->
     <div class="ficha-topbar">
       <div class="mask-reveal">
@@ -1995,6 +2023,69 @@ const initialBook = booksPayload[initialIndex];
       inset 0 -2px 3px rgba(0, 0, 0, 0.35);
   }
 
+  /* Ficha catalográfica 3D alojada entre las páginas del libro (z = 0, entre portada y contraportada) */
+  .book-catalog-card {
+    width: calc(var(--w, 282px) * 0.88);
+    height: calc(var(--h, 392px) * 0.9);
+    margin-left: calc(var(--w, 282px) * -0.44);
+    margin-top: calc(var(--h, 392px) * -0.45);
+    transform: translate3d(0px, 0px, 0px);
+    background: var(--paper-sheet);
+    border-radius: 3px;
+    box-shadow:
+      0 6px 18px rgba(24, 20, 15, 0.34),
+      0 0 0 1px rgba(12, 116, 124, 0.34),
+      inset 0 4px 0 var(--brand-petrol);
+    padding: 9% 11% 7%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+    visibility: hidden;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  .catalog-card-band {
+    display: block;
+    width: 40%;
+    height: 5px;
+    background: rgba(12, 116, 124, 0.25);
+    border-radius: 1px;
+  }
+
+  .catalog-card-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+  }
+
+  .catalog-card-rule {
+    display: block;
+    width: 100%;
+    height: 1.5px;
+    background: rgba(12, 116, 124, 0.2);
+  }
+
+  .catalog-card-rule--crimson {
+    height: 2px;
+    background: rgba(185, 28, 59, 0.42);
+  }
+
+  .catalog-card-rule--short {
+    width: 62%;
+  }
+
+  .catalog-card-hole {
+    align-self: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(24, 20, 15, 0.14);
+    border: 1.5px solid rgba(12, 116, 124, 0.32);
+  }
+
   /* Sellado interior del lomo contra fugas de luz en ángulos rasantes */
   .book-spine-backer {
     display: block;
@@ -2322,7 +2413,13 @@ const initialBook = booksPayload[initialIndex];
     background: var(--paper-sheet);
     color: var(--ink);
     overflow: hidden;
-    will-change: clip-path;
+    will-change: transform, opacity;
+    transform-origin: 50% 50%;
+    box-shadow:
+      0 -28px 68px rgba(24, 20, 15, 0.34),
+      0 28px 64px rgba(24, 20, 15, 0.28),
+      0 0 0 2px rgba(12, 116, 124, 0.32),
+      inset 0 6px 0 var(--brand-petrol);
   }
 
   .ficha-sheet[hidden] {
@@ -2331,6 +2428,59 @@ const initialBook = booksPayload[initialIndex];
 
   .ficha-sheet:focus {
     outline: none;
+  }
+
+  /* Filigrana de tarjeta catalográfica durante la extracción/guardado desde el libro 3D */
+  .ficha-card-watermark {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8% 10% 7%;
+    opacity: 0;
+    will-change: opacity;
+  }
+
+  .watermark-top-band {
+    width: 38%;
+    height: 10px;
+    background: rgba(12, 116, 124, 0.22);
+    border-radius: 2px;
+  }
+
+  .watermark-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 6.5vh;
+    width: 100%;
+  }
+
+  .watermark-rule {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background: rgba(12, 116, 124, 0.18);
+  }
+
+  .watermark-rule--crimson {
+    height: 4px;
+    background: rgba(185, 28, 59, 0.38);
+  }
+
+  .watermark-rule--short {
+    width: 64%;
+  }
+
+  .watermark-hole {
+    align-self: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(24, 20, 15, 0.12);
+    border: 3px solid rgba(12, 116, 124, 0.28);
   }
 
   .ficha-inner {
@@ -2343,6 +2493,7 @@ const initialBook = booksPayload[initialIndex];
     padding: clamp(1rem, 2.6dvh, 2rem) clamp(1.25rem, 4vw, 3.5rem);
     display: grid;
     grid-template-rows: auto auto 1fr;
+    will-change: opacity;
     gap: 0.9rem;
   }
 
@@ -3401,6 +3552,7 @@ const initialBook = booksPayload[initialIndex];
     book3d: HTMLElement;
     frontFace: HTMLElement;
     spineFace: HTMLElement;
+    catalogCard: HTMLElement;
     reflWrap: HTMLElement;
     reflFront: HTMLElement;
     reflSpine: HTMLElement;
@@ -3451,6 +3603,8 @@ const initialBook = booksPayload[initialIndex];
 
   // Elementos del Pliego de Ficha Técnica
   const fichaSheet = document.getElementById('ficha-sheet') as HTMLElement;
+  const fichaInner = document.getElementById('ficha-inner') as HTMLElement;
+  const fichaCardWatermark = document.getElementById('ficha-card-watermark') as HTMLElement;
   const closeFichaBtn = document.getElementById('close-ficha-btn') as HTMLButtonElement;
   const fichaScrollCol = document.getElementById('ficha-scroll-col') as HTMLElement;
   const fichaScrollTrack = document.getElementById('ficha-scrollbar-track') as HTMLElement;
@@ -3525,6 +3679,7 @@ const initialBook = booksPayload[initialIndex];
     book3d: el.querySelector('.book-3d') as HTMLElement,
     frontFace: el.querySelector('.book-face--front') as HTMLElement,
     spineFace: el.querySelector('.book-face--spine') as HTMLElement,
+    catalogCard: el.querySelector('.book-catalog-card') as HTMLElement,
     reflWrap: el.querySelector('.book-refl-wrap') as HTMLElement,
     reflFront: el.querySelector('.book-refl--front') as HTMLElement,
     reflSpine: el.querySelector('.book-refl--spine') as HTMLElement,
@@ -3600,9 +3755,17 @@ const initialBook = booksPayload[initialIndex];
   // Rueda del ratón / trackpad
   let wheelSnapTimer: number | null = null;
 
-  // Estado Ficha Técnica
+  // Estado Ficha Técnica y Pose 3D del Ejemplar
+  type FichaBookPose = 'idle' | 'pages' | 'cover';
   let isFichaOpen = false;
   let isFichaAnimating = false;
+  let fichaBookPose: FichaBookPose = 'idle';
+  let fichaPoseX = 0;
+  let fichaPoseY = 0;
+  let fichaPoseZ = 0;
+  let fichaPoseRotX = 0;
+  let fichaPoseRotY = 0;
+  let fichaPoseRotZ = 0;
   let lastInvokerEl: HTMLElement | null = null;
 
   // Estado Cursor Magnético e inclinación 3D hacia el puntero
@@ -4224,53 +4387,33 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
-  function computeTiltedCoverPolygon(): { tilted: string; mid: string; full: string } {
-    const activeSlot = findActiveVirtualSlot();
-    const rect = activeSlot.frontFace.getBoundingClientRect();
+  function computeCoverCardRect(slot: VirtualSlot): {
+    bx: number;
+    by: number;
+    sx0: number;
+    sy0: number;
+  } {
+    const cardEl = slot.catalogCard;
+    const prevTransform = cardEl.style.transform;
+    cardEl.style.transform =
+      'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)';
+    const rect = cardEl.getBoundingClientRect();
+    cardEl.style.transform = prevTransform;
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
+    const cardW = rect.width > 20 ? rect.width : coverW * 0.88;
+    const cardH = rect.height > 20 ? rect.height : coverH * 0.9;
     const cx = rect.width > 20 ? rect.left + rect.width * 0.5 : vw * 0.5;
     const cy = rect.height > 20 ? rect.top + rect.height * 0.5 : vh * 0.5;
 
-    // Despejar dimensiones reales antes de la rotación de -4.5°
-    const absRad = (4.5 * Math.PI) / 180;
-    const cosA = Math.cos(absRad);
-    const sinA = Math.sin(absRad);
-    const det = cosA * cosA - sinA * sinA;
-    const w = rect.width > 20 ? (rect.width * cosA - rect.height * sinA) / det : coverW;
-    const h = rect.height > 20 ? (rect.height * cosA - rect.width * sinA) / det : coverH;
+    const bx = cx - vw * 0.5;
+    const by = cy - vh * 0.5;
+    const sx0 = Math.max(0.1, Math.min(0.85, cardW / vw));
+    const sy0 = Math.max(0.18, Math.min(0.85, cardH / vh));
 
-    const makePoly = (centerX: number, centerY: number, width: number, height: number, deg: number) => {
-      const r = (deg * Math.PI) / 180;
-      const c = Math.cos(r);
-      const s = Math.sin(r);
-      const dxW = (width * 0.5) * c;
-      const dyW = (width * 0.5) * s;
-      const dxH = -(height * 0.5) * s;
-      const dyH = (height * 0.5) * c;
-
-      const p1x = (centerX - dxW - dxH).toFixed(1);
-      const p1y = (centerY - dyW - dyH).toFixed(1);
-      const p2x = (centerX + dxW - dxH).toFixed(1);
-      const p2y = (centerY + dyW - dyH).toFixed(1);
-      const p3x = (centerX + dxW + dxH).toFixed(1);
-      const p3y = (centerY + dyW + dyH).toFixed(1);
-      const p4x = (centerX - dxW + dxH).toFixed(1);
-      const p4y = (centerY - dyW + dyH).toFixed(1);
-      return `polygon(${p1x}px ${p1y}px, ${p2x}px ${p2y}px, ${p3x}px ${p3y}px, ${p4x}px ${p4y}px)`;
-    };
-
-    const tilted = makePoly(cx, cy, w, h, -4.5 + currentTiltY * 0.12);
-    const mid = makePoly(
-      cx + (vw * 0.5 - cx) * 0.55,
-      cy + (vh * 0.5 - cy) * 0.55,
-      w + (vw - w) * 0.58,
-      h + (vh - h) * 0.58,
-      -1.6
-    );
-    const full = `polygon(0px 0px, ${vw}px 0px, ${vw}px ${vh}px, 0px ${vh}px)`;
-    return { tilted, mid, full };
+    return { bx, by, sx0, sy0 };
   }
 
   function animateFichaContentsIn(baseDelay = 0) {
@@ -4362,34 +4505,162 @@ const initialBook = booksPayload[initialIndex];
     setCursorMode('default');
     targetTiltX = 0;
     targetTiltY = 0;
-
-    populateFichaDOM(activeBookIndex);
-    const { tilted, mid, full } = computeTiltedCoverPolygon();
-
-    fichaSheet.hidden = false;
-    fichaScrollCol.scrollTop = 0;
     stageRoot.inert = true;
 
-    const sheetDuration = prefersReducedMotion ? 260 : 920;
-    const sheetAnim = fichaSheet.animate(
+    populateFichaDOM(activeBookIndex);
+    fichaScrollCol.scrollTop = 0;
+
+    const activeSlot = findActiveVirtualSlot();
+    const card3d = activeSlot.catalogCard;
+
+    const startSheetExpansion = () => {
+      const { bx, by, sx0, sy0 } = computeCoverCardRect(activeSlot);
+
+      // Ocultar la tarjeta 3D justo en el instante en que el pliego toma el relevo sobre la portada
+      card3d.getAnimations().forEach((a) => a.cancel());
+      card3d.style.visibility = 'hidden';
+      card3d.style.opacity = '0';
+      card3d.style.transform =
+        'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)';
+
+      fichaSheet.hidden = false;
+
+      if (fichaInner) {
+        fichaInner.getAnimations().forEach((a) => a.cancel());
+        fichaInner.style.opacity = prefersReducedMotion ? '1' : '0';
+        if (!prefersReducedMotion) {
+          fichaInner.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 420,
+            delay: 320,
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: 'forwards',
+          });
+        }
+      }
+
+      if (fichaCardWatermark && !prefersReducedMotion) {
+        fichaCardWatermark.getAnimations().forEach((a) => a.cancel());
+        fichaCardWatermark.animate(
+          [
+            { opacity: 0.95 },
+            { opacity: 0.9, offset: 0.32 },
+            { opacity: 0 },
+          ],
+          {
+            duration: 660,
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: 'forwards',
+          }
+        );
+      }
+
+      const sheetDuration = prefersReducedMotion ? 280 : 880;
+      const sheetAnim = fichaSheet.animate(
+        prefersReducedMotion
+          ? [
+              {
+                transform: 'translate3d(0px, 24px, 0) scale(0.96)',
+                opacity: 0,
+              },
+              {
+                transform: 'translate3d(0px, 0px, 0) scale(1)',
+                opacity: 1,
+              },
+            ]
+          : [
+              {
+                // Parte exactamente desde la portada del ejemplar 3D donde se posó la tarjeta
+                transform: `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0) rotate(0deg) scale(${sx0.toFixed(3)}, ${sy0.toFixed(3)})`,
+                opacity: 1,
+                borderRadius: '10px',
+              },
+              {
+                transform: `translate3d(${(bx * 0.18).toFixed(1)}px, ${(by * 0.18).toFixed(1)}px, 0) rotate(0deg) scale(0.84, 0.88)`,
+                opacity: 1,
+                borderRadius: '6px',
+                offset: 0.56,
+              },
+              {
+                // Se abre a pantalla completa
+                transform: 'translate3d(0px, 0px, 0) rotate(0deg) scale(1, 1)',
+                opacity: 1,
+                borderRadius: '0px',
+              },
+            ],
+        {
+          duration: sheetDuration,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'forwards',
+        }
+      );
+
+      animateFichaContentsIn(prefersReducedMotion ? 80 : 340);
+
+      sheetAnim.onfinish = () => {
+        fichaSheet.style.transform = '';
+        fichaSheet.style.opacity = '';
+        fichaSheet.style.borderRadius = '';
+        if (fichaInner) fichaInner.style.opacity = '1';
+        isFichaAnimating = false;
+        fichaSheet.focus({ preventScroll: true });
+      };
+    };
+
+    if (prefersReducedMotion) {
+      fichaBookPose = 'cover';
+      startSheetExpansion();
+      return;
+    }
+
+    // FASE 1 (3D): El ejemplar muestra el canto de sus páginas, la ficha sale desde entre medio
+    // de las páginas (z = 0), pasa al frente y se posiciona sobre la portada (z = +t/2 + 6px)
+    fichaBookPose = 'pages';
+    window.setTimeout(() => {
+      if (isFichaOpen) {
+        fichaBookPose = 'cover';
+      }
+    }, 420);
+
+    card3d.getAnimations().forEach((a) => a.cancel());
+    card3d.style.visibility = 'visible';
+    card3d.style.opacity = '1';
+
+    const card3dAnim = card3d.animate(
       [
-        { clipPath: tilted },
-        { clipPath: mid, offset: 0.45 },
-        { clipPath: full },
+        {
+          // 1. Alojada en el interior entre las páginas (z = 0, detrás de la portada)
+          transform: 'translate3d(0px, 0px, 0px) rotateZ(0deg)',
+        },
+        {
+          // 2. Sale hacia la derecha desde entre medio de las páginas del libro
+          transform: 'translate3d(calc(var(--w, 282px) * 0.96), -6px, 0px) rotateZ(2.2deg)',
+          offset: 0.45,
+        },
+        {
+          // 3. Pasa por delante del plano de la portada
+          transform:
+            'translate3d(calc(var(--w, 282px) * 0.96), -6px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(1.5deg)',
+          offset: 0.55,
+        },
+        {
+          // 4. Se posiciona centrada sobre la portada del libro
+          transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+          offset: 0.88,
+        },
+        {
+          // 5. Breve pausa posada en la portada antes de abrirse
+          transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+        },
       ],
       {
-        duration: sheetDuration,
+        duration: 940,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       }
     );
 
-    animateFichaContentsIn(prefersReducedMotion ? 90 : 420);
-
-    sheetAnim.onfinish = () => {
-      fichaSheet.style.clipPath = 'none';
-      isFichaAnimating = false;
-      fichaSheet.focus({ preventScroll: true });
+    card3dAnim.onfinish = () => {
+      startSheetExpansion();
     };
   }
 
@@ -4397,11 +4668,11 @@ const initialBook = booksPayload[initialIndex];
     if (!isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
 
-    const retractDur = prefersReducedMotion ? 150 : 360;
+    const retractDur = prefersReducedMotion ? 150 : 280;
 
     for (const drop of inkDrops) {
       drop.animate([{ transform: 'scale(1)' }, { transform: 'scale(0)' }], {
-        duration: retractDur + 50,
+        duration: retractDur + 40,
         easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
         fill: 'forwards',
       });
@@ -4465,24 +4736,99 @@ const initialBook = booksPayload[initialIndex];
       );
     }
 
-    const { tilted, mid, full } = computeTiltedCoverPolygon();
+    if (fichaInner && !prefersReducedMotion) {
+      fichaInner.getAnimations().forEach((a) => a.cancel());
+      fichaInner.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 240,
+        easing: 'cubic-bezier(0.4, 0, 1, 1)',
+        fill: 'forwards',
+      });
+    }
+
+    if (fichaCardWatermark && !prefersReducedMotion) {
+      fichaCardWatermark.getAnimations().forEach((a) => a.cancel());
+      fichaCardWatermark.animate([{ opacity: 0 }, { opacity: 0.95 }], {
+        duration: 320,
+        delay: 60,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'forwards',
+      });
+    }
+
+    const activeSlot = findActiveVirtualSlot();
+    const card3d = activeSlot.catalogCard;
+    const { bx, by, sx0, sy0 } = computeCoverCardRect(activeSlot);
+
+    // FASE 1: El pliego abierto se pliega hasta posarse exactamente sobre la portada del ejemplar 3D
     const foldAnim = fichaSheet.animate(
-      [
-        { clipPath: full },
-        { clipPath: mid, offset: 0.55 },
-        { clipPath: tilted },
-      ],
+      prefersReducedMotion
+        ? [
+            {
+              transform: 'translate3d(0px, 0px, 0) scale(1)',
+              opacity: 1,
+            },
+            {
+              transform: 'translate3d(0px, 24px, 0) scale(0.96)',
+              opacity: 0,
+            },
+          ]
+        : [
+            {
+              transform: 'translate3d(0px, 0px, 0) rotate(0deg) scale(1, 1)',
+              opacity: 1,
+              borderRadius: '0px',
+            },
+            {
+              transform: `translate3d(${(bx * 0.2).toFixed(1)}px, ${(by * 0.2).toFixed(1)}px, 0) rotate(0deg) scale(0.82, 0.86)`,
+              opacity: 1,
+              borderRadius: '6px',
+              offset: 0.42,
+            },
+            {
+              // Aterriza posada sobre la portada del ejemplar
+              transform: `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0) rotate(0deg) scale(${sx0.toFixed(3)}, ${sy0.toFixed(3)})`,
+              opacity: 1,
+              borderRadius: '10px',
+            },
+          ],
       {
-        duration: prefersReducedMotion ? 240 : 660,
-        delay: prefersReducedMotion ? 40 : 180,
-        easing: 'cubic-bezier(0.65, 0, 0.35, 1)',
+        duration: prefersReducedMotion ? 240 : 720,
+        delay: prefersReducedMotion ? 20 : 80,
+        easing: 'cubic-bezier(0.32, 0, 0.2, 1)',
         fill: 'forwards',
       }
     );
 
+    const finalizeCloseCleanup = () => {
+      stageRoot.inert = false;
+      isFichaOpen = false;
+      isFichaAnimating = false;
+      if (lastInvokerEl && typeof lastInvokerEl.focus === 'function') {
+        lastInvokerEl.focus({ preventScroll: true });
+      }
+      if (hasFinePointer && pointerSeen) {
+        const hit = document.elementFromPoint(mouseX, mouseY) as HTMLElement | null;
+        const hitSlot = hit?.closest<HTMLElement>('.book-slot');
+        if (hitSlot) {
+          const vIdx = Number(hitSlot.dataset.virtualIndex ?? 0);
+          const posMod = ((currentPos % M) + M) % M;
+          const d = (((vIdx - posMod) % M) + M + M * 0.5) % M - M * 0.5;
+          setCursorMode(Math.abs(d) < 0.42 ? 'cover' : 'compact');
+        }
+      }
+    };
+
     foldAnim.onfinish = () => {
       fichaSheet.hidden = true;
       fichaSheet.getAnimations().forEach((a) => a.cancel());
+      if (fichaInner) {
+        fichaInner.getAnimations().forEach((a) => a.cancel());
+        fichaInner.style.opacity = '1';
+      }
+      if (fichaCardWatermark) {
+        fichaCardWatermark.getAnimations().forEach((a) => a.cancel());
+        fichaCardWatermark.style.opacity = '0';
+      }
       allMaskInners.forEach((el) => {
         el.getAnimations().forEach((a) => a.cancel());
         el.style.transform = 'translateY(115%)';
@@ -4500,23 +4846,66 @@ const initialBook = booksPayload[initialIndex];
         fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
         fichaScrollTrack.style.opacity = '0';
       }
-      fichaSheet.style.clipPath = '';
-      stageRoot.inert = false;
-      isFichaOpen = false;
-      isFichaAnimating = false;
-      if (lastInvokerEl && typeof lastInvokerEl.focus === 'function') {
-        lastInvokerEl.focus({ preventScroll: true });
+      fichaSheet.style.transform = '';
+      fichaSheet.style.opacity = '';
+      fichaSheet.style.borderRadius = '';
+
+      if (prefersReducedMotion) {
+        fichaBookPose = 'idle';
+        finalizeCloseCleanup();
+        return;
       }
-      if (hasFinePointer && pointerSeen) {
-        const hit = document.elementFromPoint(mouseX, mouseY) as HTMLElement | null;
-        const hitSlot = hit?.closest<HTMLElement>('.book-slot');
-        if (hitSlot) {
-          const vIdx = Number(hitSlot.dataset.virtualIndex ?? 0);
-          const posMod = ((currentPos % M) + M) % M;
-          const d = (((vIdx - posMod) % M) + M + M * 0.5) % M - M * 0.5;
-          setCursorMode(Math.abs(d) < 0.42 ? 'cover' : 'compact');
+
+      // FASE 2 (3D): Desde la portada, la ficha sale hacia el canto derecho y vuelve a meterse
+      // entre medio de las páginas del libro (z = 0, entre portada y contraportada)
+      fichaBookPose = 'pages';
+      card3d.getAnimations().forEach((a) => a.cancel());
+      card3d.style.visibility = 'visible';
+      card3d.style.opacity = '1';
+
+      const stowAnim = card3d.animate(
+        [
+          {
+            // 1. Posada sobre la portada
+            transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+          },
+          {
+            // 2. Breve pausa en la portada antes de deslizarse hacia las páginas
+            transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+            offset: 0.12,
+          },
+          {
+            // 3. Se desplaza hacia la derecha saliendo del borde de la portada
+            transform:
+              'translate3d(calc(var(--w, 282px) * 0.96), -6px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(1.8deg)',
+            offset: 0.48,
+          },
+          {
+            // 4. Se alinea con el plano central de las páginas (z = 0)
+            transform: 'translate3d(calc(var(--w, 282px) * 0.96), -6px, 0px) rotateZ(2.2deg)',
+            offset: 0.58,
+          },
+          {
+            // 5. Se desliza hacia adentro quedando guardada entre las páginas del libro
+            transform: 'translate3d(0px, 0px, 0px) rotateZ(0deg)',
+          },
+        ],
+        {
+          duration: 920,
+          easing: 'cubic-bezier(0.32, 0, 0.2, 1)',
+          fill: 'forwards',
         }
-      }
+      );
+
+      stowAnim.onfinish = () => {
+        card3d.getAnimations().forEach((a) => a.cancel());
+        card3d.style.visibility = 'hidden';
+        card3d.style.opacity = '0';
+        card3d.style.transform = 'translate3d(0px, 0px, 0px)';
+        fichaBookPose = 'idle';
+        currentTiltX = -3.6;
+        finalizeCloseCleanup();
+      };
     };
   }
 
@@ -4961,6 +5350,24 @@ const initialBook = booksPayload[initialIndex];
     currentTiltX += (targetTiltX - currentTiltX) * tiltLerp;
     currentTiltY += (targetTiltY - currentTiltY) * tiltLerp;
 
+    // Pose 3D del ejemplar central según la fase de la ficha:
+    // - 'pages': gira mostrando el canto derecho de las páginas mientras la ficha sale o entra entre ellas
+    // - 'cover': se centra frente al lector para presentar o recibir la ficha sobre su portada
+    const targetPoseX = fichaBookPose === 'pages' ? -coverW * 0.2 : 0;
+    const targetPoseY = fichaBookPose === 'pages' ? 6 : fichaBookPose === 'cover' ? 4 : 0;
+    const targetPoseZ = fichaBookPose === 'pages' ? 16 : fichaBookPose === 'cover' ? 28 : 0;
+    const targetPoseRotX = fichaBookPose === 'pages' ? -3.5 : fichaBookPose === 'cover' ? 3.2 : 0;
+    const targetPoseRotY = fichaBookPose === 'pages' ? -41.5 : fichaBookPose === 'cover' ? -19.5 : 0;
+    const targetPoseRotZ = fichaBookPose === 'pages' ? 2.0 : fichaBookPose === 'cover' ? 4.5 : 0;
+
+    const poseLerp = 1 - Math.exp(-11 * dt);
+    fichaPoseX += (targetPoseX - fichaPoseX) * poseLerp;
+    fichaPoseY += (targetPoseY - fichaPoseY) * poseLerp;
+    fichaPoseZ += (targetPoseZ - fichaPoseZ) * poseLerp;
+    fichaPoseRotX += (targetPoseRotX - fichaPoseRotX) * poseLerp;
+    fichaPoseRotY += (targetPoseRotY - fichaPoseRotY) * poseLerp;
+    fichaPoseRotZ += (targetPoseRotZ - fichaPoseRotZ) * poseLerp;
+
     // 3. Acordeón trigonométrico 3D e iluminación física de lomos
     const posMod = ((currentPos % M) + M) % M;
     const i0 = Math.floor(posMod);
@@ -5007,7 +5414,7 @@ const initialBook = booksPayload[initialIndex];
             (accordionSpread * 0.13) *
             Math.exp(-absD * 0.22);
 
-      const x = xLinear + primaryPush + harmonicRipple;
+      const x = xLinear + primaryPush + harmonicRipple + open * fichaPoseX;
 
       // Descarte (culling) de copias fuera de pantalla para mantener 120fps constantes
       if (Math.abs(x) > cullLimitPx) {
@@ -5023,15 +5430,17 @@ const initialBook = booksPayload[initialIndex];
       }
 
       // Elevación, acercamiento Z, giro 3D de lomo a portada e inclinación editorial de -4.5°
-      const y = -18 * open;
-      const z = (1 - open) * (-coverW * 0.5 - Math.min(absD, 14) * 2.8) + open * 84;
+      const y = -18 * open + open * fichaPoseY;
+      const z =
+        (1 - open) * (-coverW * 0.5 - Math.min(absD, 14) * 2.8) +
+        open * (84 + fichaPoseZ);
 
       const neighborLeanZ =
         sign * Math.sin(Math.min(absD, 3.0) * (Math.PI / 3.0)) * 1.6 * (1 - open);
 
-      const rotY = (1 - open) * 90 + open * (19.5 + currentTiltY);
-      const rotZ = neighborLeanZ + open * (-4.5 + currentTiltY * 0.08);
-      const rotX = (1 - open) * -0.6 + open * (-3.2 + currentTiltX);
+      const rotY = (1 - open) * 90 + open * (19.5 + currentTiltY + fichaPoseRotY);
+      const rotZ = neighborLeanZ + open * (-4.5 + currentTiltY * 0.08 + fichaPoseRotZ);
+      const rotX = (1 - open) * -0.6 + open * (-3.2 + currentTiltX + fichaPoseRotX);
 
       slot.el.style.zIndex = String(Math.round(500 - absD * 10 + open * 300));
       slot.el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, ${z.toFixed(2)}px)`;
