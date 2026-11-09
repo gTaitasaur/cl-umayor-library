@@ -170,7 +170,7 @@ const initialBook = booksPayload[initialIndex];
       <feTurbulence
         type="fractalNoise"
         baseFrequency="0.82"
-        numOctaves="3"
+        numOctaves="1"
         seed="4"
         stitchTiles="stitch"
         result="grain"
@@ -1039,44 +1039,16 @@ const initialBook = booksPayload[initialIndex];
                 gradientUnits="userSpaceOnUse"
                 x1="-240"
                 y1="0"
-                x2="1195"
+                x2="1210"
                 y2="0"
               >
                 <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
-                <stop offset="76%" stop-color="#ffffff" stop-opacity="1" />
-                <stop offset="88%" stop-color="#ffffff" stop-opacity="0.82" />
-                <stop offset="95%" stop-color="#ffffff" stop-opacity="0.38" />
+                <stop offset="74%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="85%" stop-color="#ffffff" stop-opacity="0.86" />
+                <stop offset="93%" stop-color="#ffffff" stop-opacity="0.45" />
+                <stop offset="98%" stop-color="#ffffff" stop-opacity="0.14" />
                 <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
               </linearGradient>
-
-              {/* Capilaridad de tinta china sobre fibra de papel de algodón (sin ruido tipo VHS) */}
-              <filter
-                id="ink-paper-bleed"
-                filterUnits="userSpaceOnUse"
-                x="-180"
-                y="-180"
-                width="1008"
-                height="1260"
-                color-interpolation-filters="linearRGB"
-              >
-                <feTurbulence
-                  id="ink-turbulence"
-                  type="fractalNoise"
-                  baseFrequency="0.022 0.009"
-                  numOctaves="2"
-                  seed="11"
-                  result="paperFiber"
-                />
-                <feDisplacementMap
-                  in="SourceGraphic"
-                  in2="paperFiber"
-                  scale="42"
-                  xChannelSelector="R"
-                  yChannelSelector="G"
-                  result="displacedWash"
-                />
-                <feGaussianBlur in="displacedWash" stdDeviation="1.6" />
-              </filter>
 
               <mask
                 id="ink-wash-mask"
@@ -1088,27 +1060,27 @@ const initialBook = booksPayload[initialIndex];
                 height="1260"
               >
                 <rect x="-180" y="-180" width="1008" height="1260" fill="#000000" />
-                {/* 4 trazos de pincel caligráfico en diagonal (-14°) que impregnan el papel */}
-                <g filter="url(#ink-paper-bleed)" transform="rotate(-14 324 450)">
+                {/* 4 trazos vectoriales de pincel caligráfico en diagonal (-14°) acelerados por GPU sin filtros pesados por fotograma */}
+                <g transform="rotate(-14 324 450)">
                   <path
                     class="ink-brush-stroke"
                     fill="url(#brush-wet-edge)"
-                    d="M -240,-170 L 920,-165 C 1060,-160 1165,-110 1175,-45 C 1185,15 1110,45 1155,105 C 1190,155 1080,215 910,220 L -240,220 Z"
+                    d="M -240,-170 L 910,-165 C 1020,-162 1145,-140 1185,-95 C 1210,-65 1135,-35 1175,5 C 1205,38 1120,72 1165,118 C 1195,152 1095,212 905,220 L -240,220 Z"
                   />
                   <path
                     class="ink-brush-stroke"
                     fill="url(#brush-wet-edge)"
-                    d="M -240,120 L 935,125 C 1090,130 1180,185 1165,255 C 1150,315 1195,360 1170,420 C 1145,475 1040,505 900,510 L -240,510 Z"
+                    d="M -240,120 L 925,124 C 1045,128 1175,155 1195,205 C 1210,242 1130,275 1178,318 C 1212,352 1125,390 1168,432 C 1192,468 1075,504 895,510 L -240,510 Z"
                   />
                   <path
                     class="ink-brush-stroke"
                     fill="url(#brush-wet-edge)"
-                    d="M -240,410 L 915,415 C 1075,420 1175,470 1180,540 C 1185,605 1120,645 1165,705 C 1195,755 1070,795 905,800 L -240,800 Z"
+                    d="M -240,410 L 910,414 C 1035,418 1165,448 1192,495 C 1212,532 1128,568 1175,612 C 1208,645 1118,682 1162,725 C 1188,760 1070,794 900,800 L -240,800 Z"
                   />
                   <path
                     class="ink-brush-stroke"
                     fill="url(#brush-wet-edge)"
-                    d="M -240,700 L 930,705 C 1085,710 1170,765 1175,835 C 1180,900 1125,945 1160,1005 C 1185,1055 1060,1085 900,1090 L -240,1090 Z"
+                    d="M -240,700 L 920,704 C 1040,708 1170,740 1190,788 C 1208,828 1125,862 1172,905 C 1204,940 1120,978 1158,1018 C 1182,1055 1065,1084 895,1090 L -240,1090 Z"
                   />
                 </g>
               </mask>
@@ -2060,7 +2032,8 @@ const initialBook = booksPayload[initialIndex];
       inset 0 -2px 3px rgba(0, 0, 0, 0.35);
   }
 
-  /* Ficha catalográfica 3D alojada entre las páginas del libro (z = 0, entre portada y contraportada) */
+  /* Ficha catalográfica 3D alojada entre las páginas del libro (z = 0, entre portada y contraportada).
+     Permanece en display: none en los 32 libros inactivos para no alojar capas 3D extra en la GPU móvil. */
   .book-catalog-card {
     width: calc(var(--w, 282px) * 0.88);
     height: calc(var(--h, 392px) * 0.9);
@@ -2074,18 +2047,22 @@ const initialBook = booksPayload[initialIndex];
       var(--paper-sheet-edge, #dec89c) 100%
     );
     border-radius: 3px;
-    box-shadow:
-      0 6px 20px rgba(32, 24, 15, 0.36),
-      0 0 0 1px var(--paper-sheet-border, rgba(122, 94, 52, 0.32)),
-      inset 0 0 14px rgba(122, 94, 52, 0.16),
-      inset 0 4px 0 var(--brand-petrol);
+    border: 1px solid var(--paper-sheet-border, rgba(122, 94, 52, 0.32));
+    border-top: 4px solid var(--brand-petrol);
+    box-shadow: 0 6px 16px rgba(32, 24, 15, 0.3);
     padding: 9% 11% 7%;
-    display: flex;
+    display: none;
     flex-direction: column;
     justify-content: space-between;
     pointer-events: none;
     visibility: hidden;
     opacity: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .book-catalog-card.is-active {
+    display: flex;
     will-change: transform, opacity;
   }
 
@@ -2491,6 +2468,12 @@ const initialBook = booksPayload[initialIndex];
 
   .ficha-sheet .paper-grain-layer {
     z-index: 2;
+    transition: opacity 0.2s ease;
+  }
+
+  /* Desactivar la capa SVG feTurbulence + mix-blend-mode mientras el pliego escala para evitar re-rasterizado por frame */
+  .ficha-sheet.is-scaling .paper-grain-layer {
+    opacity: 0;
   }
 
   .ficha-sheet[hidden] {
@@ -3337,9 +3320,9 @@ const initialBook = booksPayload[initialIndex];
     max-height: calc(100% - 1.8rem);
     aspect-ratio: 648 / 900;
     display: block;
-    filter:
-      drop-shadow(0 18px 34px rgba(24, 20, 14, 0.15))
-      drop-shadow(0 2px 6px rgba(24, 20, 14, 0.08));
+    box-shadow:
+      0 18px 34px rgba(24, 20, 14, 0.15),
+      0 2px 6px rgba(24, 20, 14, 0.08);
   }
 
   .ink-brush-stroke {
@@ -3369,8 +3352,7 @@ const initialBook = booksPayload[initialIndex];
     padding: 0.35rem 0.75rem;
     border: 1px solid rgba(54, 84, 95, 0.18);
     border-radius: 2px;
-    background: rgba(255, 255, 255, 0.45);
-    backdrop-filter: blur(2px);
+    background: rgba(255, 252, 245, 0.76);
     box-shadow: 0 2px 6px rgba(24, 20, 14, 0.04);
     margin-top: 0.15rem;
     transform: rotate(-0.5deg);
@@ -3548,6 +3530,14 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
+  /* En dispositivos táctiles y pantallas móviles se desactiva el filtro SVG feTurbulence a pantalla completa
+     para liberar ancho de banda de GPU durante las animaciones 3D y de apertura/cierre de la ficha */
+  @media (pointer: coarse), (max-width: 960px) {
+    .paper-grain-layer {
+      display: none !important;
+    }
+  }
+
   @media (max-width: 600px) {
     .month-strip {
       max-width: 92vw;
@@ -3715,7 +3705,6 @@ const initialBook = booksPayload[initialIndex];
   const reviewHpTrap = document.getElementById('review-hp-security-check') as HTMLInputElement | null;
 
   const inkRevealSvg = document.getElementById('ink-reveal-svg') as unknown as SVGSVGElement;
-  const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
   const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGUseElement;
   const fichaCoverArt = document.getElementById('ficha-cover-art') as unknown as SVGGElement;
   const inkBrushStrokes = Array.from(document.querySelectorAll<SVGPathElement>('.ink-brush-stroke'));
@@ -4406,7 +4395,7 @@ const initialBook = booksPayload[initialIndex];
     }, 5000);
   });
 
-  function populateFichaDOM(bookIdx: number) {
+  function populateFichaDOM(bookIdx: number, deferReviews = false) {
     const book = books[bookIdx];
     if (!book) return;
 
@@ -4427,11 +4416,12 @@ const initialBook = booksPayload[initialIndex];
       fichaSynopsisLines.appendChild(createMaskedLine(paragraph, 'synopsis-paragraph'));
     }
 
-    // Cargar y mostrar las opiniones de los miembros para este libro
-    loadAndDisplayReviews(bookIdx, book.slug);
+    // Cargar y mostrar las opiniones de los miembros para este libro (se difiere al abrir la ficha para no bloquear la animación 3D)
+    if (!deferReviews) {
+      loadAndDisplayReviews(bookIdx, book.slug);
+    }
 
-    // Semilla de fibra de papel + portada editorial para el revelado por aguada de tinta china
-    inkTurbulence?.setAttribute('seed', String(bookIdx * 17 + 11));
+    // Portada editorial para el revelado por aguada de tinta china
     fichaInkImage.setAttribute('href', `#editorial-cover-${bookIdx}`);
     inkRevealSvg?.setAttribute('aria-label', `Portada editorial de ${book.title}`);
 
@@ -4472,24 +4462,21 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
+  // Lee directamente la geometría proyectada de la portada sin mutar estilos en línea,
+  // evitando un reflujo síncrono forzado (layout thrashing) del escenario 3D en dispositivos móviles.
   function computeCoverCardRect(slot: VirtualSlot): {
     bx: number;
     by: number;
     sx0: number;
     sy0: number;
   } {
-    const cardEl = slot.catalogCard;
-    const prevTransform = cardEl.style.transform;
-    cardEl.style.transform =
-      'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)';
-    const rect = cardEl.getBoundingClientRect();
-    cardEl.style.transform = prevTransform;
+    const rect = slot.frontFace.getBoundingClientRect();
 
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    const cardW = rect.width > 20 ? rect.width : coverW * 0.88;
-    const cardH = rect.height > 20 ? rect.height : coverH * 0.9;
+    const cardW = rect.width > 20 ? rect.width * 0.88 : coverW * 0.88;
+    const cardH = rect.height > 20 ? rect.height * 0.9 : coverH * 0.9;
     const cx = rect.width > 20 ? rect.left + rect.width * 0.5 : vw * 0.5;
     const cy = rect.height > 20 ? rect.top + rect.height * 0.5 : vh * 0.5;
 
@@ -4633,22 +4620,28 @@ const initialBook = booksPayload[initialIndex];
     targetTiltY = 0;
     stageRoot.inert = true;
 
-    populateFichaDOM(activeBookIndex);
+    populateFichaDOM(activeBookIndex, true);
     fichaScrollCol.scrollTop = 0;
 
     const activeSlot = findActiveVirtualSlot();
     const card3d = activeSlot.catalogCard;
+    const slideX = (coverW * 0.96).toFixed(1);
+    const bookThicknessPx = Math.round(activeSlot.rawThickness * thicknessScale);
+    const frontZ = (bookThicknessPx * 0.5 + 6).toFixed(1);
 
     const startSheetExpansion = () => {
       const { bx, by, sx0, sy0 } = computeCoverCardRect(activeSlot);
 
-      // Ocultar la tarjeta 3D justo en el instante en que el pliego toma el relevo sobre la portada
+      // Ocultar la tarjeta 3D y pausar el renderizado 3D de los 33 libros justo cuando el pliego toma el relevo,
+      // dedicando el 100% de la GPU/CPU a la apertura a pantalla completa y al trazo caligráfico.
       card3d.getAnimations().forEach((a) => a.cancel());
       card3d.style.visibility = 'hidden';
       card3d.style.opacity = '0';
-      card3d.style.transform =
-        'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)';
+      card3d.style.transform = `translate3d(0px, 0px, ${frontZ}px) rotateZ(0deg)`;
+      card3d.classList.remove('is-active');
+      isShelfRenderingActive = false;
 
+      fichaSheet.classList.add('is-scaling');
       fichaSheet.hidden = false;
 
       if (fichaInner) {
@@ -4717,19 +4710,16 @@ const initialBook = booksPayload[initialIndex];
                 // Parte exactamente desde la portada del ejemplar 3D donde se posó la tarjeta
                 transform: `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0) rotate(0deg) scale(${sx0.toFixed(3)}, ${sy0.toFixed(3)})`,
                 opacity: 1,
-                borderRadius: '10px',
               },
               {
                 transform: `translate3d(${(bx * 0.18).toFixed(1)}px, ${(by * 0.18).toFixed(1)}px, 0) rotate(0deg) scale(0.84, 0.88)`,
                 opacity: 1,
-                borderRadius: '6px',
                 offset: 0.56,
               },
               {
                 // Se abre a pantalla completa
                 transform: 'translate3d(0px, 0px, 0) rotate(0deg) scale(1, 1)',
                 opacity: 1,
-                borderRadius: '0px',
               },
             ],
         {
@@ -4742,13 +4732,17 @@ const initialBook = booksPayload[initialIndex];
       animateFichaContentsIn(prefersReducedMotion ? 80 : 340);
 
       sheetAnim.onfinish = () => {
+        fichaSheet.classList.remove('is-scaling');
         fichaSheet.style.transform = '';
         fichaSheet.style.opacity = '';
-        fichaSheet.style.borderRadius = '';
         if (fichaInner) fichaInner.style.opacity = '1';
         if (fichaSheetLightOverlay) fichaSheetLightOverlay.style.opacity = '1';
         isFichaAnimating = false;
         fichaSheet.focus({ preventScroll: true });
+        const currentBook = books[activeBookIndex];
+        if (currentBook) {
+          loadAndDisplayReviews(activeBookIndex, currentBook.slug);
+        }
       };
     };
 
@@ -4768,6 +4762,7 @@ const initialBook = booksPayload[initialIndex];
     }, 420);
 
     card3d.getAnimations().forEach((a) => a.cancel());
+    card3d.classList.add('is-active');
     card3d.style.visibility = 'visible';
     card3d.style.opacity = '1';
 
@@ -4779,23 +4774,22 @@ const initialBook = booksPayload[initialIndex];
         },
         {
           // 2. Sale hacia la derecha desde entre medio de las páginas del libro
-          transform: 'translate3d(calc(var(--w, 282px) * 0.96), -6px, 0px) rotateZ(2.2deg)',
+          transform: `translate3d(${slideX}px, -6px, 0px) rotateZ(2.2deg)`,
           offset: 0.45,
         },
         {
           // 3. Pasa por delante del plano de la portada
-          transform:
-            'translate3d(calc(var(--w, 282px) * 0.96), -6px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(1.5deg)',
+          transform: `translate3d(${slideX}px, -6px, ${frontZ}px) rotateZ(1.5deg)`,
           offset: 0.55,
         },
         {
           // 4. Se posiciona centrada sobre la portada del libro
-          transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+          transform: `translate3d(0px, 0px, ${frontZ}px) rotateZ(0deg)`,
           offset: 0.88,
         },
         {
           // 5. Breve pausa posada en la portada antes de abrirse
-          transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+          transform: `translate3d(0px, 0px, ${frontZ}px) rotateZ(0deg)`,
         },
       ],
       {
@@ -4925,9 +4919,16 @@ const initialBook = booksPayload[initialIndex];
       );
     }
 
+    currentPos = targetPos;
+    velocity = 0;
     const activeSlot = findActiveVirtualSlot();
     const card3d = activeSlot.catalogCard;
+    const slideX = (coverW * 0.96).toFixed(1);
+    const bookThicknessPx = Math.round(activeSlot.rawThickness * thicknessScale);
+    const frontZ = (bookThicknessPx * 0.5 + 6).toFixed(1);
     const { bx, by, sx0, sy0 } = computeCoverCardRect(activeSlot);
+
+    fichaSheet.classList.add('is-scaling');
 
     // FASE 1: El pliego abierto se pliega hasta posarse exactamente sobre la portada del ejemplar 3D
     const foldAnim = fichaSheet.animate(
@@ -4946,19 +4947,16 @@ const initialBook = booksPayload[initialIndex];
             {
               transform: 'translate3d(0px, 0px, 0) rotate(0deg) scale(1, 1)',
               opacity: 1,
-              borderRadius: '0px',
             },
             {
               transform: `translate3d(${(bx * 0.2).toFixed(1)}px, ${(by * 0.2).toFixed(1)}px, 0) rotate(0deg) scale(0.82, 0.86)`,
               opacity: 1,
-              borderRadius: '6px',
               offset: 0.42,
             },
             {
               // Aterriza posada sobre la portada del ejemplar
               transform: `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0) rotate(0deg) scale(${sx0.toFixed(3)}, ${sy0.toFixed(3)})`,
               opacity: 1,
-              borderRadius: '10px',
             },
           ],
       {
@@ -4989,6 +4987,13 @@ const initialBook = booksPayload[initialIndex];
     };
 
     foldAnim.onfinish = () => {
+      // Sincronizar la escena 3D y reactivar el renderizado de la estantería para la fase 3D de guardado
+      currentPos = targetPos;
+      velocity = 0;
+      isShelfRenderingActive = true;
+      renderShelfFrame(0.016);
+
+      fichaSheet.classList.remove('is-scaling');
       fichaSheet.hidden = true;
       fichaSheet.getAnimations().forEach((a) => a.cancel());
       if (fichaInner) {
@@ -5033,7 +5038,6 @@ const initialBook = booksPayload[initialIndex];
       }
       fichaSheet.style.transform = '';
       fichaSheet.style.opacity = '';
-      fichaSheet.style.borderRadius = '';
 
       if (prefersReducedMotion) {
         fichaBookPose = 'idle';
@@ -5045,6 +5049,7 @@ const initialBook = booksPayload[initialIndex];
       // entre medio de las páginas del libro (z = 0, entre portada y contraportada)
       fichaBookPose = 'pages';
       card3d.getAnimations().forEach((a) => a.cancel());
+      card3d.classList.add('is-active');
       card3d.style.visibility = 'visible';
       card3d.style.opacity = '1';
 
@@ -5052,22 +5057,21 @@ const initialBook = booksPayload[initialIndex];
         [
           {
             // 1. Posada sobre la portada
-            transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+            transform: `translate3d(0px, 0px, ${frontZ}px) rotateZ(0deg)`,
           },
           {
             // 2. Breve pausa en la portada antes de deslizarse hacia las páginas
-            transform: 'translate3d(0px, 0px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(0deg)',
+            transform: `translate3d(0px, 0px, ${frontZ}px) rotateZ(0deg)`,
             offset: 0.12,
           },
           {
             // 3. Se desplaza hacia la derecha saliendo del borde de la portada
-            transform:
-              'translate3d(calc(var(--w, 282px) * 0.96), -6px, calc(var(--t, 54px) * 0.5 + 6px)) rotateZ(1.8deg)',
+            transform: `translate3d(${slideX}px, -6px, ${frontZ}px) rotateZ(1.8deg)`,
             offset: 0.48,
           },
           {
             // 4. Se alinea con el plano central de las páginas (z = 0)
-            transform: 'translate3d(calc(var(--w, 282px) * 0.96), -6px, 0px) rotateZ(2.2deg)',
+            transform: `translate3d(${slideX}px, -6px, 0px) rotateZ(2.2deg)`,
             offset: 0.58,
           },
           {
@@ -5087,6 +5091,7 @@ const initialBook = booksPayload[initialIndex];
         card3d.style.visibility = 'hidden';
         card3d.style.opacity = '0';
         card3d.style.transform = 'translate3d(0px, 0px, 0px)';
+        card3d.classList.remove('is-active');
         fichaBookPose = 'idle';
         currentTiltX = -3.6;
         finalizeCloseCleanup();
@@ -5097,6 +5102,8 @@ const initialBook = booksPayload[initialIndex];
   function switchBookInsideFicha(delta: number) {
     if (!isFichaOpen || isFichaAnimating) return;
     stepBy(delta);
+    currentPos = targetPos;
+    velocity = 0;
     const nextIdx = (((Math.round(targetPos) % N) + N) % N);
     updateActiveBookUI(nextIdx, delta);
     populateFichaDOM(nextIdx);
@@ -5486,6 +5493,7 @@ const initialBook = booksPayload[initialIndex];
   // ================= ÚNICO BUCLE MAESTRO requestAnimationFrame =================
   let rafId: number | null = null;
   let isLoopRunning = false;
+  let isShelfRenderingActive = true;
   let lastFrameTime = performance.now();
 
   function startLoop() {
@@ -5503,12 +5511,7 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
-  function masterLoop(now: number) {
-    if (!isLoopRunning) return;
-
-    const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.05);
-    lastFrameTime = now;
-
+  function renderShelfFrame(dt: number) {
     // 1. Física de resorte de la estantería
     const stiffness = isDragging ? 310 : prefersReducedMotion ? 280 : 155;
     const damping = isDragging ? 32 : prefersReducedMotion ? 34 : 21.5;
@@ -5693,25 +5696,42 @@ const initialBook = booksPayload[initialIndex];
     const shadowScaleX = 0.35 + centerOpenFactor * 0.72;
     const shadowScaleY = 0.56 + centerOpenFactor * 0.54;
     castShadow.style.transform = `translate3d(${(currentTiltY * 0.7).toFixed(1)}px, 0, 0) rotate(-4.5deg) scale(${shadowScaleX.toFixed(3)}, ${shadowScaleY.toFixed(3)})`;
+  }
 
-    // 4. Cursor personalizado con suavizado exponencial (sin transiciones de opacidad)
-    if (hasFinePointer && pointerSeen) {
-      const cursorAlpha = 1 - Math.exp(-20 * dt);
-      cursorX += (mouseX - cursorX) * cursorAlpha;
-      cursorY += (mouseY - cursorY) * cursorAlpha;
+  // 4. Cursor personalizado con suavizado exponencial: se ejecuta continuamente en RAF para seguimiento fluido a 60/120fps
+  function updateCursor(dt: number) {
+    if (!hasFinePointer || !pointerSeen) return;
 
-      const desiredRing =
-        cursorMode === 'cover' ? 0 : cursorMode === 'compact' ? (isDragging ? 0.66 : 0.44) : 1;
-      const desiredCobalt = cursorMode === 'cover' ? 1 : 0;
+    const cursorAlpha = 1 - Math.exp(-20 * dt);
+    cursorX += (mouseX - cursorX) * cursorAlpha;
+    cursorY += (mouseY - cursorY) * cursorAlpha;
 
-      const morphAlpha = 1 - Math.exp(-16 * dt);
-      ringScale += (desiredRing - ringScale) * morphAlpha;
-      cobaltScale += (desiredCobalt - cobaltScale) * morphAlpha;
+    const desiredRing =
+      cursorMode === 'cover' ? 0 : cursorMode === 'compact' ? (isDragging ? 0.66 : 0.44) : 1;
+    const desiredCobalt = cursorMode === 'cover' ? 1 : 0;
 
-      customCursor.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${cursorY.toFixed(2)}px, 0)`;
-      cursorRing.style.transform = `scale(${ringScale.toFixed(3)})`;
-      cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
+    const morphAlpha = 1 - Math.exp(-16 * dt);
+    ringScale += (desiredRing - ringScale) * morphAlpha;
+    cobaltScale += (desiredCobalt - cobaltScale) * morphAlpha;
+
+    customCursor.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${cursorY.toFixed(2)}px, 0)`;
+    cursorRing.style.transform = `scale(${ringScale.toFixed(3)})`;
+    cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
+  }
+
+  function masterLoop(now: number) {
+    if (!isLoopRunning) return;
+
+    const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.05);
+    lastFrameTime = now;
+
+    // Solo se calcula la estantería 3D (33 libros, matrices y reflejos) si la estantería está activa
+    if (isShelfRenderingActive) {
+      renderShelfFrame(dt);
     }
+
+    // El cursor personalizado se actualiza siempre de forma ultraligera (~0.01ms)
+    updateCursor(dt);
 
     rafId = requestAnimationFrame(masterLoop);
   }
