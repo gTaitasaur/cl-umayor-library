@@ -154,8 +154,8 @@ const editorialCoverSpecs = renderedBooks.map((b) => {
 
 // 3 ciclos virtuales garantizan una estantería infinita sin costuras incluso en monitores 4K ultrawide
 const VIRTUAL_COPIES = [0, 1, 2];
-const initialBookIndex = booksPayload.length > 0 ? booksPayload.length - 1 : 0;
-const initialBook = booksPayload[initialBookIndex];
+const initialIndex = Math.max(0, booksPayload.length - 1);
+const initialBook = booksPayload[initialIndex];
 ---
 
 <!-- Filtros y Plantillas Editoriales SVG globales (1 símbolo vectorial por libro, reutilizado en 3D, reflejo y ficha) -->
@@ -353,7 +353,7 @@ const initialBook = booksPayload[initialBookIndex];
                 type="button"
                 class="year-tab"
                 data-year={yr}
-                aria-pressed={yr === initialBook?.year ? 'true' : 'false'}
+                aria-pressed={initialBook && yr === initialBook.year ? 'true' : 'false'}
                 data-cursor="compact"
               >
                 <span class="year-tab-label">{yr}</span>
@@ -366,19 +366,22 @@ const initialBook = booksPayload[initialBookIndex];
 
       <nav class="month-strip" aria-label="Meses del año activo">
         {
-          monthCodes.map((code, mIdx) => (
-            <button
-              type="button"
-              class={`month-tick ${mIdx + 1 === initialBook?.month ? 'is-active' : ''}`}
-              data-month={mIdx + 1}
-              aria-label={`Ir a mes ${code}`}
-              aria-current={mIdx + 1 === initialBook?.month ? 'true' : undefined}
-              data-cursor="compact"
-            >
-              <span class="month-tick-bar" aria-hidden="true" />
-              <span class="month-tick-code">{code}</span>
-            </button>
-          ))
+          monthCodes.map((code, mIdx) => {
+            const isInitialMonth = initialBook && mIdx + 1 === initialBook.month;
+            return (
+              <button
+                type="button"
+                class={`month-tick ${isInitialMonth ? 'is-active' : ''}`}
+                data-month={mIdx + 1}
+                aria-label={`Ir a mes ${code}`}
+                aria-current={isInitialMonth ? 'true' : undefined}
+                data-cursor="compact"
+              >
+                <span class="month-tick-bar" aria-hidden="true" />
+                <span class="month-tick-code">{code}</span>
+              </button>
+            );
+          })
         }
       </nav>
     </div>
@@ -388,7 +391,7 @@ const initialBook = booksPayload[initialBookIndex];
         <span class="folio-prefix">TÍTULO</span>
         <span class="folio-num-wrap">
           <span class="mask-slot folio-slot" id="counter-index-slot">
-            <span class="mask-item">{String(initialBookIndex + 1).padStart(2, '0')}</span>
+            <span class="mask-item">{String(initialIndex + 1).padStart(2, '0')}</span>
           </span>
           <span class="folio-sep">/</span>
           <span class="folio-total">{String(booksPayload.length).padStart(2, '0')}</span>
@@ -684,7 +687,7 @@ const initialBook = booksPayload[initialBookIndex];
     <div class="ficha-topbar">
       <div class="mask-reveal">
         <div class="mask-reveal-inner ficha-kicker" id="ficha-folio-code">
-          REGISTRO · Nº 01
+          REGISTRO · Nº {String(initialIndex + 1).padStart(2, '0')}
         </div>
       </div>
 
@@ -714,7 +717,8 @@ const initialBook = booksPayload[initialBookIndex];
     <!-- Diseño Editorial a Dos Columnas -->
     <div class="ficha-columns">
       <!-- Columna Izquierda: Metadatos, Sinopsis y Notas .md en Máscaras -->
-      <div class="ficha-col-left" id="ficha-scroll-col">
+      <div class="ficha-col-left-wrap">
+        <div class="ficha-col-left" id="ficha-scroll-col">
         <div class="ficha-header-group">
           <div class="mask-reveal">
             <div class="mask-reveal-inner ficha-season-tag" id="ficha-season-tag"></div>
@@ -980,6 +984,12 @@ const initialBook = booksPayload[initialBookIndex];
           </div>
         </section>
       </div>
+
+      <!-- Barra de Scroll Editorial Animada (Entrada y Salida Suaves) -->
+      <div class="ficha-scrollbar-track" id="ficha-scrollbar-track" data-cursor="compact" aria-hidden="true">
+        <div class="ficha-scrollbar-thumb" id="ficha-scrollbar-thumb"></div>
+      </div>
+    </div>
 
       <!-- Columna Derecha: Revelado de Portada por Mancha de Tinta SVG (7 círculos + feTurbulence + feDisplacementMap) -->
       <div class="ficha-col-right">
@@ -2438,46 +2448,78 @@ const initialBook = booksPayload[initialBookIndex];
     align-items: stretch;
   }
 
+  .ficha-col-left-wrap {
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+  }
+
   .ficha-col-left {
     min-height: 0;
+    height: 100%;
+    width: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding-right: 0.75rem;
+    padding-right: 1.15rem;
     padding-bottom: 2.5rem;
     display: flex;
     flex-direction: column;
     gap: 1.35rem;
     user-select: text;
     -webkit-user-select: text;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
-    transition: scrollbar-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   .ficha-col-left::-webkit-scrollbar {
-    width: 6px;
+    display: none;
+    width: 0;
+    height: 0;
   }
 
-  .ficha-col-left::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .ficha-col-left::-webkit-scrollbar-thumb {
-    background-color: transparent;
+  /* Barra de Scroll Editorial Animada */
+  .ficha-scrollbar-track {
+    position: absolute;
+    top: 0.5rem;
+    bottom: 2.5rem;
+    right: 0;
+    width: 3.5px;
     border-radius: 999px;
-    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    background: rgba(54, 84, 95, 0.08);
+    opacity: 0;
+    pointer-events: auto;
+    cursor: default;
+    z-index: 10;
+    will-change: opacity, transform;
+    transform-origin: top center;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, width 0.2s ease;
   }
 
-  .ficha-sheet.is-sheet-active .ficha-col-left {
-    scrollbar-color: var(--rule-strong) transparent;
+  .ficha-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--rule-strong);
+    will-change: transform;
+    cursor: grab;
+    transition: background-color 0.2s ease;
   }
 
-  .ficha-sheet.is-sheet-active .ficha-col-left::-webkit-scrollbar-thumb {
-    background-color: var(--rule-strong);
+  .ficha-scrollbar-thumb:hover,
+  .ficha-scrollbar-thumb.is-dragging {
+    background: var(--cobalt);
+    cursor: grabbing;
   }
 
-  .ficha-sheet.is-sheet-active .ficha-col-left::-webkit-scrollbar-thumb:hover {
-    background-color: var(--cobalt);
+  .ficha-scrollbar-track:hover {
+    background: rgba(54, 84, 95, 0.16);
+    width: 4.5px;
   }
 
   .mask-reveal,
@@ -3235,46 +3277,36 @@ const initialBook = booksPayload[initialBookIndex];
       --cover-h: min(38dvh, 300px);
     }
 
+    .ficha-col-left-wrap {
+      height: auto;
+      display: block;
+      order: 2;
+    }
+
+    .ficha-scrollbar-track {
+      display: none !important;
+    }
+
     .ficha-columns {
       grid-template-columns: 1fr;
       overflow-y: auto;
       overscroll-behavior: contain;
       padding-bottom: 2rem;
-      scrollbar-width: thin;
-      scrollbar-color: transparent transparent;
-      transition: scrollbar-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      scrollbar-width: none;
     }
 
     .ficha-columns::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .ficha-columns::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .ficha-columns::-webkit-scrollbar-thumb {
-      background-color: transparent;
-      border-radius: 999px;
-      transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .ficha-sheet.is-sheet-active .ficha-columns {
-      scrollbar-color: var(--rule-strong) transparent;
-    }
-
-    .ficha-sheet.is-sheet-active .ficha-columns::-webkit-scrollbar-thumb {
-      background-color: var(--rule-strong);
-    }
-
-    .ficha-sheet.is-sheet-active .ficha-columns::-webkit-scrollbar-thumb:hover {
-      background-color: var(--cobalt);
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     .ficha-col-left {
       overflow-y: visible;
       padding-bottom: 0.5rem;
-      order: 2;
+      padding-right: 0;
+      order: unset;
+      height: auto;
     }
 
     .ficha-col-right {
@@ -3421,6 +3453,8 @@ const initialBook = booksPayload[initialBookIndex];
   const fichaSheet = document.getElementById('ficha-sheet') as HTMLElement;
   const closeFichaBtn = document.getElementById('close-ficha-btn') as HTMLButtonElement;
   const fichaScrollCol = document.getElementById('ficha-scroll-col') as HTMLElement;
+  const fichaScrollTrack = document.getElementById('ficha-scrollbar-track') as HTMLElement;
+  const fichaScrollThumb = document.getElementById('ficha-scrollbar-thumb') as HTMLElement;
   const fichaFolioCode = document.getElementById('ficha-folio-code') as HTMLElement;
   const fichaSeasonTag = document.getElementById('ficha-season-tag') as HTMLElement;
   const fichaBookTitle = document.getElementById('ficha-book-title') as HTMLElement;
@@ -3546,12 +3580,12 @@ const initialBook = booksPayload[initialBookIndex];
   }
 
   // ================= ESTADO DEL MOTOR DE FÍSICA Y CURSOR =================
-  // Arrancamos en la copia central (N) centrados en el último libro añadido
-  const initialIndex = Math.max(0, N - 1);
-  let currentPos = N + initialIndex;
-  let targetPos = N + initialIndex;
+  // Arrancamos en la copia central (N) posicionados en el último libro añadido
+  const initialBookIdx = Math.max(0, N - 1);
+  let currentPos = N + initialBookIdx;
+  let targetPos = N + initialBookIdx;
   let velocity = 0;
-  let activeBookIndex = initialIndex;
+  let activeBookIndex = initialBookIdx;
 
   // Arrastre (Drag)
   let isDragging = false;
@@ -4179,6 +4213,11 @@ const initialBook = booksPayload[initialBookIndex];
     closeFichaBtn.style.transform = 'translateY(12px)';
     closeFichaBtn.style.opacity = '0';
 
+    if (fichaScrollTrack) {
+      fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
+      fichaScrollTrack.style.opacity = '0';
+    }
+
     for (const drop of inkDrops) {
       drop.getAnimations().forEach((a) => a.cancel());
       drop.style.transform = 'scale(0)';
@@ -4294,12 +4333,22 @@ const initialBook = booksPayload[initialBookIndex];
       });
     });
 
-    // Desvanecimiento editorial fluido de la barra de desplazamiento (Scrollbar)
-    setTimeout(() => {
-      if (isFichaOpen) {
-        fichaSheet.classList.add('is-sheet-active');
-      }
-    }, baseDelay + (prefersReducedMotion ? 40 : 200));
+    if (fichaScrollTrack) {
+      updateFichaScrollbar();
+      fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
+      fichaScrollTrack.animate(
+        [
+          { opacity: 0, transform: 'scaleY(0.85)' },
+          { opacity: 1, transform: 'scaleY(1)' },
+        ],
+        {
+          duration: prefersReducedMotion ? 200 : 520,
+          delay: baseDelay + 240,
+          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          fill: 'forwards',
+        }
+      );
+    }
   }
 
   function openFicha(invoker?: HTMLElement) {
@@ -4317,7 +4366,6 @@ const initialBook = booksPayload[initialBookIndex];
     populateFichaDOM(activeBookIndex);
     const { tilted, mid, full } = computeTiltedCoverPolygon();
 
-    fichaSheet.classList.remove('is-sheet-active');
     fichaSheet.hidden = false;
     fichaScrollCol.scrollTop = 0;
     stageRoot.inert = true;
@@ -4348,7 +4396,6 @@ const initialBook = booksPayload[initialBookIndex];
   function closeFicha() {
     if (!isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
-    fichaSheet.classList.remove('is-sheet-active');
 
     const retractDur = prefersReducedMotion ? 150 : 360;
 
@@ -4403,6 +4450,21 @@ const initialBook = booksPayload[initialBookIndex];
       }
     );
 
+    if (fichaScrollTrack) {
+      fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
+      fichaScrollTrack.animate(
+        [
+          { opacity: 1, transform: 'scaleY(1)' },
+          { opacity: 0, transform: 'scaleY(0.85)' },
+        ],
+        {
+          duration: retractDur,
+          easing: 'cubic-bezier(0.4, 0, 1, 1)',
+          fill: 'forwards',
+        }
+      );
+    }
+
     const { tilted, mid, full } = computeTiltedCoverPolygon();
     const foldAnim = fichaSheet.animate(
       [
@@ -4419,7 +4481,6 @@ const initialBook = booksPayload[initialBookIndex];
     );
 
     foldAnim.onfinish = () => {
-      fichaSheet.classList.remove('is-sheet-active');
       fichaSheet.hidden = true;
       fichaSheet.getAnimations().forEach((a) => a.cancel());
       allMaskInners.forEach((el) => {
@@ -4435,6 +4496,10 @@ const initialBook = booksPayload[initialBookIndex];
       closeFichaBtn.getAnimations().forEach((a) => a.cancel());
       closeFichaBtn.style.transform = 'translateY(12px)';
       closeFichaBtn.style.opacity = '0';
+      if (fichaScrollTrack) {
+        fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
+        fichaScrollTrack.style.opacity = '0';
+      }
       fichaSheet.style.clipPath = '';
       stageRoot.inert = false;
       isFichaOpen = false;
@@ -4463,6 +4528,87 @@ const initialBook = booksPayload[initialBookIndex];
     populateFichaDOM(nextIdx);
     fichaScrollCol.scrollTop = 0;
     animateFichaContentsIn(60);
+  }
+
+  // ================= SCROLLBAR EDITORIAL ANIMADA =================
+  function updateFichaScrollbar() {
+    if (!fichaScrollCol || !fichaScrollTrack || !fichaScrollThumb) return;
+    const scrollHeight = fichaScrollCol.scrollHeight;
+    const clientHeight = fichaScrollCol.clientHeight;
+    const maxScroll = scrollHeight - clientHeight;
+
+    if (maxScroll <= 4) {
+      fichaScrollTrack.style.opacity = '0';
+      fichaScrollTrack.style.pointerEvents = 'none';
+      return;
+    }
+
+    fichaScrollTrack.style.pointerEvents = 'auto';
+    const trackHeight = fichaScrollTrack.clientHeight || Math.max(clientHeight - 48, 100);
+    const thumbHeight = Math.max(34, Math.min(trackHeight * 0.7, (clientHeight / scrollHeight) * trackHeight));
+    fichaScrollThumb.style.height = `${thumbHeight.toFixed(1)}px`;
+
+    const scrollTop = fichaScrollCol.scrollTop;
+    const scrollProgress = Math.max(0, Math.min(1, scrollTop / maxScroll));
+    const thumbTop = scrollProgress * (trackHeight - thumbHeight);
+    fichaScrollThumb.style.transform = `translate3d(0, ${thumbTop.toFixed(1)}px, 0)`;
+  }
+
+  fichaScrollCol.addEventListener('scroll', updateFichaScrollbar, { passive: true });
+  window.addEventListener('resize', updateFichaScrollbar, { passive: true });
+
+  let isDraggingScrollThumb = false;
+  let dragScrollStartY = 0;
+  let dragScrollStartTop = 0;
+
+  if (fichaScrollThumb && fichaScrollTrack) {
+    fichaScrollThumb.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      isDraggingScrollThumb = true;
+      dragScrollStartY = e.clientY;
+      dragScrollStartTop = fichaScrollCol.scrollTop;
+      fichaScrollThumb.classList.add('is-dragging');
+      try {
+        fichaScrollThumb.setPointerCapture(e.pointerId);
+      } catch {}
+    });
+
+    fichaScrollThumb.addEventListener('pointermove', (e) => {
+      if (!isDraggingScrollThumb) return;
+      const deltaY = e.clientY - dragScrollStartY;
+      const trackHeight = fichaScrollTrack.clientHeight;
+      const thumbHeight = fichaScrollThumb.clientHeight;
+      const maxThumbMove = trackHeight - thumbHeight;
+      const maxScroll = fichaScrollCol.scrollHeight - fichaScrollCol.clientHeight;
+      if (maxThumbMove > 0 && maxScroll > 0) {
+        fichaScrollCol.scrollTop = dragScrollStartTop + (deltaY / maxThumbMove) * maxScroll;
+      }
+    });
+
+    const stopThumbDrag = (e: PointerEvent) => {
+      if (!isDraggingScrollThumb) return;
+      isDraggingScrollThumb = false;
+      fichaScrollThumb.classList.remove('is-dragging');
+      try {
+        fichaScrollThumb.releasePointerCapture(e.pointerId);
+      } catch {}
+    };
+
+    fichaScrollThumb.addEventListener('pointerup', stopThumbDrag);
+    fichaScrollThumb.addEventListener('pointercancel', stopThumbDrag);
+
+    fichaScrollTrack.addEventListener('click', (e) => {
+      if (e.target === fichaScrollThumb) return;
+      const trackRect = fichaScrollTrack.getBoundingClientRect();
+      const clickY = e.clientY - trackRect.top;
+      const trackHeight = trackRect.height;
+      const scrollProgress = Math.max(0, Math.min(1, clickY / trackHeight));
+      const maxScroll = fichaScrollCol.scrollHeight - fichaScrollCol.clientHeight;
+      fichaScrollCol.scrollTo({
+        top: scrollProgress * maxScroll,
+        behavior: 'smooth',
+      });
+    });
   }
 
   // ================= EVENTOS DE INTERACCIÓN =================
