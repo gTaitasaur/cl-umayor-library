@@ -692,6 +692,9 @@ const initialBook = booksPayload[initialIndex];
   tabindex="-1"
   hidden
 >
+  <!-- Capa de aclarado suave que transiciona fluidamente entre la ficha abierta (crema claro) y el modelo 3D (amarillo desgastado) -->
+  <div class="ficha-sheet-light-overlay" id="ficha-sheet-light-overlay" aria-hidden="true"></div>
+
   <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
     <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
   </svg>
@@ -1019,7 +1022,7 @@ const initialBook = booksPayload[initialIndex];
       </div>
     </div>
 
-      <!-- Columna Derecha: Revelado de Portada por Mancha de Tinta SVG (7 círculos + feTurbulence + feDisplacementMap) -->
+      <!-- Columna Derecha: Revelado de Portada por Aguada de Tinta China y Trazo Caligráfico -->
       <div class="ficha-col-right">
         <div class="ink-plate-frame">
           <svg
@@ -1027,12 +1030,28 @@ const initialBook = booksPayload[initialIndex];
             id="ink-reveal-svg"
             viewBox="0 0 648 900"
             role="img"
-            aria-label="Ilustración de portada revelada sobre papel"
+            aria-label="Ilustración de portada revelada por aguada de tinta sobre papel"
           >
             <defs>
-              {/* color-interpolation-filters="linearRGB" garantiza desplazamiento centrado (media 0.5) sin deriva diagonal */}
+              {/* Gradiente de frente húmedo del pincel: cuerpo sólido y punta difuminada de acuarela */}
+              <linearGradient
+                id="brush-wet-edge"
+                gradientUnits="userSpaceOnUse"
+                x1="-240"
+                y1="0"
+                x2="1195"
+                y2="0"
+              >
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="76%" stop-color="#ffffff" stop-opacity="1" />
+                <stop offset="88%" stop-color="#ffffff" stop-opacity="0.82" />
+                <stop offset="95%" stop-color="#ffffff" stop-opacity="0.38" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+              </linearGradient>
+
+              {/* Capilaridad de tinta china sobre fibra de papel de algodón (sin ruido tipo VHS) */}
               <filter
-                id="ink-stain-displacement"
+                id="ink-paper-bleed"
                 filterUnits="userSpaceOnUse"
                 x="-180"
                 y="-180"
@@ -1043,22 +1062,24 @@ const initialBook = booksPayload[initialIndex];
                 <feTurbulence
                   id="ink-turbulence"
                   type="fractalNoise"
-                  baseFrequency="0.014 0.018"
-                  numOctaves="4"
+                  baseFrequency="0.022 0.009"
+                  numOctaves="2"
                   seed="11"
-                  result="fractalPaper"
+                  result="paperFiber"
                 />
                 <feDisplacementMap
                   in="SourceGraphic"
-                  in2="fractalPaper"
-                  scale="116"
+                  in2="paperFiber"
+                  scale="42"
                   xChannelSelector="R"
                   yChannelSelector="G"
+                  result="displacedWash"
                 />
+                <feGaussianBlur in="displacedWash" stdDeviation="1.6" />
               </filter>
 
               <mask
-                id="ink-blot-mask"
+                id="ink-wash-mask"
                 maskUnits="userSpaceOnUse"
                 maskContentUnits="userSpaceOnUse"
                 x="-180"
@@ -1067,49 +1088,65 @@ const initialBook = booksPayload[initialIndex];
                 height="1260"
               >
                 <rect x="-180" y="-180" width="1008" height="1260" fill="#000000" />
-                <g filter="url(#ink-stain-displacement)" fill="#ffffff">
-                  <circle class="ink-drop" cx="324" cy="450" r="490" data-cx="324" data-cy="450" />
-                  <circle class="ink-drop" cx="155" cy="195" r="385" data-cx="155" data-cy="195" />
-                  <circle class="ink-drop" cx="493" cy="205" r="390" data-cx="493" data-cy="205" />
-                  <circle class="ink-drop" cx="160" cy="705" r="390" data-cx="160" data-cy="705" />
-                  <circle class="ink-drop" cx="488" cy="695" r="395" data-cx="488" data-cy="695" />
-                  <circle class="ink-drop" cx="328" cy="130" r="350" data-cx="328" data-cy="130" />
-                  <circle class="ink-drop" cx="320" cy="770" r="360" data-cx="320" data-cy="770" />
+                {/* 4 trazos de pincel caligráfico en diagonal (-14°) que impregnan el papel */}
+                <g filter="url(#ink-paper-bleed)" transform="rotate(-14 324 450)">
+                  <path
+                    class="ink-brush-stroke"
+                    fill="url(#brush-wet-edge)"
+                    d="M -240,-170 L 920,-165 C 1060,-160 1165,-110 1175,-45 C 1185,15 1110,45 1155,105 C 1190,155 1080,215 910,220 L -240,220 Z"
+                  />
+                  <path
+                    class="ink-brush-stroke"
+                    fill="url(#brush-wet-edge)"
+                    d="M -240,120 L 935,125 C 1090,130 1180,185 1165,255 C 1150,315 1195,360 1170,420 C 1145,475 1040,505 900,510 L -240,510 Z"
+                  />
+                  <path
+                    class="ink-brush-stroke"
+                    fill="url(#brush-wet-edge)"
+                    d="M -240,410 L 915,415 C 1075,420 1175,470 1180,540 C 1185,605 1120,645 1165,705 C 1195,755 1070,795 905,800 L -240,800 Z"
+                  />
+                  <path
+                    class="ink-brush-stroke"
+                    fill="url(#brush-wet-edge)"
+                    d="M -240,700 L 930,705 C 1085,710 1170,765 1175,835 C 1180,900 1125,945 1160,1005 C 1185,1055 1060,1085 900,1090 L -240,1090 Z"
+                  />
                 </g>
               </mask>
             </defs>
 
-            <!-- Sombra impresa sutil del marco editorial -->
+            <!-- Guía seca de registro editorial impresa sobre el pliego antes del baño de tinta -->
             <rect
               x="14"
               y="14"
               width="620"
               height="872"
               fill="none"
-              stroke="rgba(24,22,20,0.1)"
+              stroke="rgba(24, 22, 20, 0.1)"
               stroke-width="1"
               stroke-dasharray="4 4"
             />
 
-            <!-- Portada editorial dinámica enmascarada orgánicamente por las 7 manchas de tinta -->
-            <g mask="url(#ink-blot-mask)">
-              <use
-                id="ficha-ink-image"
-                href={`#editorial-cover-${initialBook?.index ?? 0}`}
-                x="0"
-                y="0"
-                width="648"
-                height="900"
-              />
-              <rect
-                x="0"
-                y="0"
-                width="648"
-                height="900"
-                fill="none"
-                stroke="rgba(24,22,20,0.18)"
-                stroke-width="2"
-              />
+            <!-- Portada editorial revelada por la aguada de tinta china -->
+            <g mask="url(#ink-wash-mask)">
+              <g id="ficha-cover-art" class="ficha-cover-art">
+                <use
+                  id="ficha-ink-image"
+                  href={`#editorial-cover-${initialBook?.index ?? 0}`}
+                  x="0"
+                  y="0"
+                  width="648"
+                  height="900"
+                />
+                <rect
+                  x="1"
+                  y="1"
+                  width="646"
+                  height="898"
+                  fill="none"
+                  stroke="rgba(24, 22, 20, 0.2)"
+                  stroke-width="2"
+                />
+              </g>
             </g>
           </svg>
 
@@ -2030,11 +2067,17 @@ const initialBook = booksPayload[initialIndex];
     margin-left: calc(var(--w, 282px) * -0.44);
     margin-top: calc(var(--h, 392px) * -0.45);
     transform: translate3d(0px, 0px, 0px);
-    background: var(--paper-sheet);
+    background: radial-gradient(
+      ellipse 95% 85% at 50% 45%,
+      var(--paper-sheet-light, #f4e8cf) 0%,
+      var(--paper-sheet, #eddcb8) 55%,
+      var(--paper-sheet-edge, #dec89c) 100%
+    );
     border-radius: 3px;
     box-shadow:
-      0 6px 18px rgba(24, 20, 15, 0.34),
-      0 0 0 1px rgba(12, 116, 124, 0.34),
+      0 6px 20px rgba(32, 24, 15, 0.36),
+      0 0 0 1px var(--paper-sheet-border, rgba(122, 94, 52, 0.32)),
+      inset 0 0 14px rgba(122, 94, 52, 0.16),
       inset 0 4px 0 var(--brand-petrol);
     padding: 9% 11% 7%;
     display: flex;
@@ -2050,7 +2093,7 @@ const initialBook = booksPayload[initialIndex];
     display: block;
     width: 40%;
     height: 5px;
-    background: rgba(12, 116, 124, 0.25);
+    background: rgba(12, 116, 124, 0.28);
     border-radius: 1px;
   }
 
@@ -2065,12 +2108,12 @@ const initialBook = booksPayload[initialIndex];
     display: block;
     width: 100%;
     height: 1.5px;
-    background: rgba(12, 116, 124, 0.2);
+    background: rgba(12, 116, 124, 0.22);
   }
 
   .catalog-card-rule--crimson {
     height: 2px;
-    background: rgba(185, 28, 59, 0.42);
+    background: rgba(185, 28, 59, 0.44);
   }
 
   .catalog-card-rule--short {
@@ -2082,8 +2125,8 @@ const initialBook = booksPayload[initialIndex];
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: rgba(24, 20, 15, 0.14);
-    border: 1.5px solid rgba(12, 116, 124, 0.32);
+    background: rgba(36, 26, 16, 0.18);
+    border: 1.5px solid rgba(122, 94, 52, 0.38);
   }
 
   /* Sellado interior del lomo contra fugas de luz en ángulos rasantes */
@@ -2410,16 +2453,44 @@ const initialBook = booksPayload[initialIndex];
     height: 100dvh;
     z-index: 60;
     isolation: isolate;
-    background: var(--paper-sheet);
+    /* Fondo base idéntico a la tarjeta 3D antigua para una transición continua sin saltos */
+    background: radial-gradient(
+      ellipse 95% 85% at 50% 45%,
+      var(--paper-sheet-light, #f4e8cf) 0%,
+      var(--paper-sheet, #eddcb8) 55%,
+      var(--paper-sheet-edge, #dec89c) 100%
+    );
     color: var(--ink);
     overflow: hidden;
     will-change: transform, opacity;
     transform-origin: 50% 50%;
     box-shadow:
-      0 -28px 68px rgba(24, 20, 15, 0.34),
-      0 28px 64px rgba(24, 20, 15, 0.28),
+      0 -28px 68px rgba(24, 20, 15, 0.38),
+      0 28px 64px rgba(24, 20, 15, 0.32),
       0 0 0 2px rgba(12, 116, 124, 0.32),
+      inset 0 0 45px rgba(122, 94, 52, 0.16),
       inset 0 6px 0 var(--brand-petrol);
+  }
+
+  /* Capa de lectura clara que suaviza el tono al estar abierta y se desvanece al cerrarse hacia el modelo 3D */
+  .ficha-sheet-light-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 96% 90% at 50% 36%,
+      #f9f6ef 0%,
+      #f6f0e4 55%,
+      #eee4d3 100%
+    );
+    box-shadow: inset 0 0 45px rgba(122, 94, 52, 0.07);
+    opacity: 1;
+    will-change: opacity;
+  }
+
+  .ficha-sheet .paper-grain-layer {
+    z-index: 2;
   }
 
   .ficha-sheet[hidden] {
@@ -2479,8 +2550,8 @@ const initialBook = booksPayload[initialIndex];
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(24, 20, 15, 0.12);
-    border: 3px solid rgba(12, 116, 124, 0.28);
+    background: rgba(36, 26, 16, 0.14);
+    border: 3px solid rgba(122, 94, 52, 0.34);
   }
 
   .ficha-inner {
@@ -2676,7 +2747,7 @@ const initialBook = booksPayload[initialIndex];
   .mask-reveal,
   :global(.mask-reveal),
   .ficha-col-left :global(.mask-reveal) {
-    overflow: hidden;
+    overflow: visible;
     display: block;
   }
 
@@ -2684,7 +2755,7 @@ const initialBook = booksPayload[initialIndex];
   :global(.mask-reveal-inner),
   .ficha-col-left :global(.mask-reveal-inner) {
     display: block;
-    will-change: transform;
+    will-change: transform, opacity;
   }
 
   .ficha-header-group {
@@ -3239,7 +3310,7 @@ const initialBook = booksPayload[initialIndex];
     color: var(--cobalt);
   }
 
-  /* Columna Derecha: Plancha SVG con Mancha de Tinta */
+  /* Columna Derecha: Revelado de Portada por Aguada de Tinta China y Trazo Caligráfico */
   .ficha-col-right {
     min-height: 0;
     display: flex;
@@ -3266,11 +3337,18 @@ const initialBook = booksPayload[initialIndex];
     max-height: calc(100% - 1.8rem);
     aspect-ratio: 648 / 900;
     display: block;
-    filter: drop-shadow(0 18px 34px rgba(24, 20, 14, 0.14));
+    filter:
+      drop-shadow(0 18px 34px rgba(24, 20, 14, 0.15))
+      drop-shadow(0 2px 6px rgba(24, 20, 14, 0.08));
   }
 
-  .ink-drop {
-    transform: scale(0);
+  .ink-brush-stroke {
+    transform: translateX(-1420px);
+    will-change: transform;
+  }
+
+  .ficha-cover-art {
+    transform-origin: 324px 450px;
     will-change: transform;
   }
 
@@ -3279,7 +3357,7 @@ const initialBook = booksPayload[initialIndex];
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden;
+    overflow: visible;
     padding: 4px 6px;
     margin: -4px -6px;
   }
@@ -3604,6 +3682,7 @@ const initialBook = booksPayload[initialIndex];
   // Elementos del Pliego de Ficha Técnica
   const fichaSheet = document.getElementById('ficha-sheet') as HTMLElement;
   const fichaInner = document.getElementById('ficha-inner') as HTMLElement;
+  const fichaSheetLightOverlay = document.getElementById('ficha-sheet-light-overlay') as HTMLElement | null;
   const fichaCardWatermark = document.getElementById('ficha-card-watermark') as HTMLElement;
   const closeFichaBtn = document.getElementById('close-ficha-btn') as HTMLButtonElement;
   const fichaScrollCol = document.getElementById('ficha-scroll-col') as HTMLElement;
@@ -3638,7 +3717,8 @@ const initialBook = booksPayload[initialIndex];
   const inkRevealSvg = document.getElementById('ink-reveal-svg') as unknown as SVGSVGElement;
   const inkTurbulence = document.getElementById('ink-turbulence') as unknown as SVGFETurbulenceElement;
   const fichaInkImage = document.getElementById('ficha-ink-image') as unknown as SVGUseElement;
-  const inkDrops = Array.from(document.querySelectorAll<SVGCircleElement>('.ink-drop'));
+  const fichaCoverArt = document.getElementById('ficha-cover-art') as unknown as SVGGElement;
+  const inkBrushStrokes = Array.from(document.querySelectorAll<SVGPathElement>('.ink-brush-stroke'));
 
   // Cursor Magnético
   const customCursor = document.getElementById('custom-cursor') as HTMLElement;
@@ -3664,12 +3744,8 @@ const initialBook = booksPayload[initialIndex];
     document.body.classList.toggle('has-custom-cursor', hasFinePointer);
   });
 
-  // Inicializar orígenes explícitos en espacio SVG para los 7 círculos de la máscara de tinta
-  for (const drop of inkDrops) {
-    const cx = drop.dataset.cx ?? '324';
-    const cy = drop.dataset.cy ?? '450';
-    drop.style.transformOrigin = `${cx}px ${cy}px`;
-    drop.style.transform = 'scale(0)';
+  for (const stroke of inkBrushStrokes) {
+    stroke.style.transform = 'translateX(-1420px)';
   }
 
   // Construir registro de ranuras 3D virtuales
@@ -3962,12 +4038,13 @@ const initialBook = booksPayload[initialIndex];
   function createMaskedLine(text: string, innerClass: string, tag: 'p' | 'div' | 'h3' = 'p') {
     const outer = document.createElement('div');
     outer.className = 'mask-reveal';
-    outer.style.overflow = 'hidden';
+    outer.style.overflow = 'visible';
     outer.style.display = 'block';
     const inner = document.createElement(tag);
     inner.className = `mask-reveal-inner ${innerClass}`;
     inner.textContent = text;
-    inner.style.transform = 'translateY(115%)';
+    inner.style.transform = 'translate3d(0, 10px, 0)';
+    inner.style.opacity = '0';
     outer.appendChild(inner);
     return outer;
   }
@@ -4353,16 +4430,29 @@ const initialBook = booksPayload[initialIndex];
     // Cargar y mostrar las opiniones de los miembros para este libro
     loadAndDisplayReviews(bookIdx, book.slug);
 
-    // Semilla única para la mancha de tinta orgánica de este libro + plantilla editorial dinámica
-    inkTurbulence.setAttribute('seed', String(bookIdx * 13 + 7));
+    // Semilla de fibra de papel + portada editorial para el revelado por aguada de tinta china
+    inkTurbulence?.setAttribute('seed', String(bookIdx * 17 + 11));
     fichaInkImage.setAttribute('href', `#editorial-cover-${bookIdx}`);
     inkRevealSvg?.setAttribute('aria-label', `Portada editorial de ${book.title}`);
 
-    // Preparar todos los elementos enmascarados antes de animar
+    for (const stroke of inkBrushStrokes) {
+      stroke.getAnimations().forEach((a) => a.cancel());
+      stroke.style.transform = 'translateX(-1420px)';
+    }
+
+    if (fichaCoverArt) {
+      fichaCoverArt.getAnimations().forEach((a) => a.cancel());
+      fichaCoverArt.style.transform = 'scale(1.022)';
+    }
+
+    // Preparar todos los bloques tipográficos y el sello Ex Libris para su asentamiento de tinta
     const allMaskInners = fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner');
     for (const item of allMaskInners) {
       item.getAnimations().forEach((a) => a.cancel());
-      item.style.transform = 'translateY(115%)';
+      const isExLibris = Boolean(item.querySelector('.ficha-ex-libris'));
+      item.style.transform = isExLibris
+        ? 'translate3d(0, -6px, 0) scale(1.06)'
+        : 'translate3d(0, 10px, 0)';
       item.style.opacity = '0';
     }
 
@@ -4373,17 +4463,12 @@ const initialBook = booksPayload[initialIndex];
     }
 
     closeFichaBtn.getAnimations().forEach((a) => a.cancel());
-    closeFichaBtn.style.transform = 'translateY(12px)';
+    closeFichaBtn.style.transform = 'translate3d(0, 8px, 0)';
     closeFichaBtn.style.opacity = '0';
 
     if (fichaScrollTrack) {
       fichaScrollTrack.getAnimations().forEach((a) => a.cancel());
       fichaScrollTrack.style.opacity = '0';
-    }
-
-    for (const drop of inkDrops) {
-      drop.getAnimations().forEach((a) => a.cancel());
-      drop.style.transform = 'scale(0)';
     }
   }
 
@@ -4417,8 +4502,8 @@ const initialBook = booksPayload[initialIndex];
   }
 
   function animateFichaContentsIn(baseDelay = 0) {
-    const durLine = prefersReducedMotion ? 240 : 820;
-    const stagger = prefersReducedMotion ? 10 : 42;
+    const durLine = prefersReducedMotion ? 220 : 660;
+    const stagger = prefersReducedMotion ? 10 : 38;
 
     const rules = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.ficha-rule-scale'));
     rules.forEach((rule, idx) => {
@@ -4428,8 +4513,8 @@ const initialBook = booksPayload[initialIndex];
           { transform: 'scaleX(1)', opacity: 1 },
         ],
         {
-          duration: prefersReducedMotion ? 220 : 880,
-          delay: baseDelay + idx * 75,
+          duration: prefersReducedMotion ? 220 : 780,
+          delay: baseDelay + idx * 70,
           easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           fill: 'forwards',
         }
@@ -4439,42 +4524,83 @@ const initialBook = booksPayload[initialIndex];
     closeFichaBtn.getAnimations().forEach((a) => a.cancel());
     closeFichaBtn.animate(
       [
-        { transform: 'translateY(12px)', opacity: 0 },
-        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translate3d(0, 8px, 0)', opacity: 0 },
+        { transform: 'translate3d(0, 0, 0)', opacity: 1 },
       ],
       {
-        duration: prefersReducedMotion ? 200 : 620,
+        duration: prefersReducedMotion ? 200 : 580,
         delay: baseDelay + 40,
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       }
     );
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     allMaskInners.forEach((el, idx) => {
-      el.animate(
+      const isExLibris = Boolean(el.querySelector('.ficha-ex-libris'));
+      if (isExLibris) {
+        // Sello Ex Libris: se estampa sobre el papel al asentarse la lámina de portada
+        el.animate(
+          [
+            { transform: 'translate3d(0, -6px, 0) scale(1.06)', opacity: 0 },
+            { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1 },
+          ],
+          {
+            duration: prefersReducedMotion ? 220 : 640,
+            delay: baseDelay + (prefersReducedMotion ? 60 : 380),
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: 'forwards',
+          }
+        );
+      } else {
+        // Cascada de lectura natural: absorción de tinta y micro-asentamiento editorial
+        el.animate(
+          [
+            { transform: 'translate3d(0, 10px, 0)', opacity: 0 },
+            { transform: 'translate3d(0, 0px, 0)', opacity: 1 },
+          ],
+          {
+            duration: durLine,
+            delay: baseDelay + Math.min(idx * stagger, 760),
+            easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            fill: 'forwards',
+          }
+        );
+      }
+    });
+
+    // Aguada de Tinta China / Trazo Caligráfico: 4 barridos diagonales de pincel sobre papel de algodón
+    inkBrushStrokes.forEach((stroke, idx) => {
+      stroke.getAnimations().forEach((a) => a.cancel());
+      stroke.animate(
         [
-          { transform: 'translateY(115%)', opacity: 0 },
-          { transform: 'translateY(0%)', opacity: 1 },
+          { transform: 'translateX(-1420px)' },
+          { transform: 'translateX(0px)' },
         ],
         {
-          duration: durLine,
-          delay: baseDelay + Math.min(idx * stagger, 980),
-          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          duration: prefersReducedMotion ? 320 : 880 + idx * 55,
+          delay: baseDelay + (prefersReducedMotion ? 20 : 75 + idx * 95),
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           fill: 'forwards',
         }
       );
     });
 
-    // Revelado orgánico de las 7 manchas de tinta SVG sobre el papel
-    inkDrops.forEach((drop, idx) => {
-      drop.animate([{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
-        duration: prefersReducedMotion ? 360 : 1380 + idx * 140,
-        delay: baseDelay + (prefersReducedMotion ? 40 : 110 + idx * 95),
-        easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-        fill: 'forwards',
-      });
-    });
+    if (fichaCoverArt) {
+      fichaCoverArt.getAnimations().forEach((a) => a.cancel());
+      fichaCoverArt.animate(
+        [
+          { transform: 'scale(1.022)' },
+          { transform: 'scale(1)' },
+        ],
+        {
+          duration: prefersReducedMotion ? 320 : 1120,
+          delay: baseDelay + (prefersReducedMotion ? 20 : 75),
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'forwards',
+        }
+      );
+    }
 
     if (fichaScrollTrack) {
       updateFichaScrollbar();
@@ -4487,7 +4613,7 @@ const initialBook = booksPayload[initialIndex];
         {
           duration: prefersReducedMotion ? 200 : 520,
           delay: baseDelay + 240,
-          easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
           fill: 'forwards',
         }
       );
@@ -4554,6 +4680,25 @@ const initialBook = booksPayload[initialIndex];
         );
       }
 
+      if (fichaSheetLightOverlay) {
+        fichaSheetLightOverlay.getAnimations().forEach((a) => a.cancel());
+        fichaSheetLightOverlay.style.opacity = prefersReducedMotion ? '1' : '0';
+        if (!prefersReducedMotion) {
+          fichaSheetLightOverlay.animate(
+            [
+              { opacity: 0 },
+              { opacity: 1 },
+            ],
+            {
+              duration: 720,
+              delay: 180,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              fill: 'forwards',
+            }
+          );
+        }
+      }
+
       const sheetDuration = prefersReducedMotion ? 280 : 880;
       const sheetAnim = fichaSheet.animate(
         prefersReducedMotion
@@ -4601,6 +4746,7 @@ const initialBook = booksPayload[initialIndex];
         fichaSheet.style.opacity = '';
         fichaSheet.style.borderRadius = '';
         if (fichaInner) fichaInner.style.opacity = '1';
+        if (fichaSheetLightOverlay) fichaSheetLightOverlay.style.opacity = '1';
         isFichaAnimating = false;
         fichaSheet.focus({ preventScroll: true });
       };
@@ -4668,22 +4814,29 @@ const initialBook = booksPayload[initialIndex];
     if (!isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
 
-    const retractDur = prefersReducedMotion ? 150 : 280;
+    const retractDur = prefersReducedMotion ? 150 : 260;
 
-    for (const drop of inkDrops) {
-      drop.animate([{ transform: 'scale(1)' }, { transform: 'scale(0)' }], {
-        duration: retractDur + 40,
-        easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
-        fill: 'forwards',
-      });
+    for (const stroke of inkBrushStrokes) {
+      stroke.getAnimations().forEach((a) => a.cancel());
+      stroke.animate(
+        [
+          { transform: 'translateX(0px)' },
+          { transform: 'translateX(-1420px)' },
+        ],
+        {
+          duration: retractDur + 40,
+          easing: 'cubic-bezier(0.4, 0, 0.8, 1)',
+          fill: 'forwards',
+        }
+      );
     }
 
     const allMaskInners = Array.from(fichaSheet.querySelectorAll<HTMLElement>('.mask-reveal-inner'));
     for (const el of allMaskInners) {
       el.animate(
         [
-          { transform: 'translateY(0%)', opacity: 1 },
-          { transform: 'translateY(115%)', opacity: 0 },
+          { transform: 'translate3d(0, 0px, 0)', opacity: 1 },
+          { transform: 'translate3d(0, 6px, 0)', opacity: 0 },
         ],
         {
           duration: retractDur,
@@ -4711,8 +4864,8 @@ const initialBook = booksPayload[initialIndex];
     closeFichaBtn.getAnimations().forEach((a) => a.cancel());
     closeFichaBtn.animate(
       [
-        { transform: 'translateY(0)', opacity: 1 },
-        { transform: 'translateY(12px)', opacity: 0 },
+        { transform: 'translate3d(0, 0, 0)', opacity: 1 },
+        { transform: 'translate3d(0, 8px, 0)', opacity: 0 },
       ],
       {
         duration: retractDur,
@@ -4753,6 +4906,23 @@ const initialBook = booksPayload[initialIndex];
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
         fill: 'forwards',
       });
+    }
+
+    // Transición fluida de color: la capa clara se desvanece suavemente hacia el amarillo antiguo del modelo 3D mientras se pliega
+    if (fichaSheetLightOverlay && !prefersReducedMotion) {
+      fichaSheetLightOverlay.getAnimations().forEach((a) => a.cancel());
+      fichaSheetLightOverlay.animate(
+        [
+          { opacity: 1 },
+          { opacity: 0 },
+        ],
+        {
+          duration: prefersReducedMotion ? 200 : 660,
+          delay: prefersReducedMotion ? 0 : 50,
+          easing: 'cubic-bezier(0.32, 0, 0.2, 1)',
+          fill: 'forwards',
+        }
+      );
     }
 
     const activeSlot = findActiveVirtualSlot();
@@ -4829,9 +4999,24 @@ const initialBook = booksPayload[initialIndex];
         fichaCardWatermark.getAnimations().forEach((a) => a.cancel());
         fichaCardWatermark.style.opacity = '0';
       }
+      if (fichaSheetLightOverlay) {
+        fichaSheetLightOverlay.getAnimations().forEach((a) => a.cancel());
+        fichaSheetLightOverlay.style.opacity = '0';
+      }
+      for (const stroke of inkBrushStrokes) {
+        stroke.getAnimations().forEach((a) => a.cancel());
+        stroke.style.transform = 'translateX(-1420px)';
+      }
+      if (fichaCoverArt) {
+        fichaCoverArt.getAnimations().forEach((a) => a.cancel());
+        fichaCoverArt.style.transform = 'scale(1.022)';
+      }
       allMaskInners.forEach((el) => {
         el.getAnimations().forEach((a) => a.cancel());
-        el.style.transform = 'translateY(115%)';
+        const isExLibris = Boolean(el.querySelector('.ficha-ex-libris'));
+        el.style.transform = isExLibris
+          ? 'translate3d(0, -6px, 0) scale(1.06)'
+          : 'translate3d(0, 10px, 0)';
         el.style.opacity = '0';
       });
       rules.forEach((r) => {
@@ -4840,7 +5025,7 @@ const initialBook = booksPayload[initialIndex];
         r.style.opacity = '0';
       });
       closeFichaBtn.getAnimations().forEach((a) => a.cancel());
-      closeFichaBtn.style.transform = 'translateY(12px)';
+      closeFichaBtn.style.transform = 'translate3d(0, 8px, 0)';
       closeFichaBtn.style.opacity = '0';
       if (fichaScrollTrack) {
         fichaScrollTrack.getAnimations().forEach((a) => a.cancel());

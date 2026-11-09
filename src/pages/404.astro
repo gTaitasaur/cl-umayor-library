@@ -164,14 +164,20 @@ import Layout from '../layouts/Layout.astro';
     position: relative;
     z-index: 10;
     width: min(100%, 520px);
-    background: var(--paper-sheet);
-    border: 1px solid var(--rule-strong);
+    background: radial-gradient(
+      ellipse at 50% 38%,
+      var(--paper-sheet-light, #f4e8cf) 0%,
+      var(--paper-sheet, #eddcb8) 60%,
+      var(--paper-sheet-edge, #dec89c) 100%
+    );
+    border: 1px solid var(--paper-sheet-border, rgba(122, 94, 52, 0.32));
     border-radius: 4px;
     padding: clamp(1.8rem, 5vw, 2.8rem);
     box-shadow:
       0 2px 4px rgba(24, 20, 15, 0.04),
-      0 12px 32px rgba(24, 20, 15, 0.08),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+      0 12px 32px rgba(24, 20, 15, 0.12),
+      inset 0 0 20px rgba(122, 94, 52, 0.12),
+      inset 0 4px 0 var(--brand-crimson);
     display: flex;
     flex-direction: column;
     align-items: center;
