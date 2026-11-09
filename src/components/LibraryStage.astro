@@ -154,7 +154,8 @@ const editorialCoverSpecs = renderedBooks.map((b) => {
 
 // 3 ciclos virtuales garantizan una estantería infinita sin costuras incluso en monitores 4K ultrawide
 const VIRTUAL_COPIES = [0, 1, 2];
-const initialBook = booksPayload[0];
+const initialBookIndex = booksPayload.length > 0 ? booksPayload.length - 1 : 0;
+const initialBook = booksPayload[initialBookIndex];
 ---
 
 <!-- Filtros y Plantillas Editoriales SVG globales (1 símbolo vectorial por libro, reutilizado en 3D, reflejo y ficha) -->
@@ -347,12 +348,12 @@ const initialBook = booksPayload[0];
       <nav class="year-nav" aria-label="Temporadas por año">
         <div class="year-tabs" id="year-tabs">
           {
-            years.map((yr, idx) => (
+            years.map((yr) => (
               <button
                 type="button"
                 class="year-tab"
                 data-year={yr}
-                aria-pressed={idx === 0 ? 'true' : 'false'}
+                aria-pressed={yr === initialBook?.year ? 'true' : 'false'}
                 data-cursor="compact"
               >
                 <span class="year-tab-label">{yr}</span>
@@ -368,10 +369,10 @@ const initialBook = booksPayload[0];
           monthCodes.map((code, mIdx) => (
             <button
               type="button"
-              class={`month-tick ${mIdx === 0 ? 'is-active' : ''}`}
+              class={`month-tick ${mIdx + 1 === initialBook?.month ? 'is-active' : ''}`}
               data-month={mIdx + 1}
               aria-label={`Ir a mes ${code}`}
-              aria-current={mIdx === 0 ? 'true' : undefined}
+              aria-current={mIdx + 1 === initialBook?.month ? 'true' : undefined}
               data-cursor="compact"
             >
               <span class="month-tick-bar" aria-hidden="true" />
@@ -387,7 +388,7 @@ const initialBook = booksPayload[0];
         <span class="folio-prefix">TÍTULO</span>
         <span class="folio-num-wrap">
           <span class="mask-slot folio-slot" id="counter-index-slot">
-            <span class="mask-item">01</span>
+            <span class="mask-item">{String(initialBookIndex + 1).padStart(2, '0')}</span>
           </span>
           <span class="folio-sep">/</span>
           <span class="folio-total">{String(booksPayload.length).padStart(2, '0')}</span>
@@ -2449,7 +2450,34 @@ const initialBook = booksPayload[0];
     user-select: text;
     -webkit-user-select: text;
     scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ficha-col-left::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .ficha-col-left::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .ficha-col-left::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 999px;
+    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ficha-sheet.is-sheet-active .ficha-col-left {
     scrollbar-color: var(--rule-strong) transparent;
+  }
+
+  .ficha-sheet.is-sheet-active .ficha-col-left::-webkit-scrollbar-thumb {
+    background-color: var(--rule-strong);
+  }
+
+  .ficha-sheet.is-sheet-active .ficha-col-left::-webkit-scrollbar-thumb:hover {
+    background-color: var(--cobalt);
   }
 
   .mask-reveal,
@@ -3212,6 +3240,35 @@ const initialBook = booksPayload[0];
       overflow-y: auto;
       overscroll-behavior: contain;
       padding-bottom: 2rem;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+      transition: scrollbar-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .ficha-columns::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .ficha-columns::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .ficha-columns::-webkit-scrollbar-thumb {
+      background-color: transparent;
+      border-radius: 999px;
+      transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .ficha-sheet.is-sheet-active .ficha-columns {
+      scrollbar-color: var(--rule-strong) transparent;
+    }
+
+    .ficha-sheet.is-sheet-active .ficha-columns::-webkit-scrollbar-thumb {
+      background-color: var(--rule-strong);
+    }
+
+    .ficha-sheet.is-sheet-active .ficha-columns::-webkit-scrollbar-thumb:hover {
+      background-color: var(--cobalt);
     }
 
     .ficha-col-left {
@@ -3489,11 +3546,12 @@ const initialBook = booksPayload[0];
   }
 
   // ================= ESTADO DEL MOTOR DE FÍSICA Y CURSOR =================
-  // Arrancamos en la copia central (N) para simetría perfecta
-  let currentPos = N;
-  let targetPos = N;
+  // Arrancamos en la copia central (N) centrados en el último libro añadido
+  const initialIndex = Math.max(0, N - 1);
+  let currentPos = N + initialIndex;
+  let targetPos = N + initialIndex;
   let velocity = 0;
-  let activeBookIndex = 0;
+  let activeBookIndex = initialIndex;
 
   // Arrastre (Drag)
   let isDragging = false;
@@ -4235,6 +4293,13 @@ const initialBook = booksPayload[0];
         fill: 'forwards',
       });
     });
+
+    // Desvanecimiento editorial fluido de la barra de desplazamiento (Scrollbar)
+    setTimeout(() => {
+      if (isFichaOpen) {
+        fichaSheet.classList.add('is-sheet-active');
+      }
+    }, baseDelay + (prefersReducedMotion ? 40 : 200));
   }
 
   function openFicha(invoker?: HTMLElement) {
@@ -4252,6 +4317,7 @@ const initialBook = booksPayload[0];
     populateFichaDOM(activeBookIndex);
     const { tilted, mid, full } = computeTiltedCoverPolygon();
 
+    fichaSheet.classList.remove('is-sheet-active');
     fichaSheet.hidden = false;
     fichaScrollCol.scrollTop = 0;
     stageRoot.inert = true;
@@ -4282,6 +4348,7 @@ const initialBook = booksPayload[0];
   function closeFicha() {
     if (!isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
+    fichaSheet.classList.remove('is-sheet-active');
 
     const retractDur = prefersReducedMotion ? 150 : 360;
 
@@ -4352,6 +4419,7 @@ const initialBook = booksPayload[0];
     );
 
     foldAnim.onfinish = () => {
+      fichaSheet.classList.remove('is-sheet-active');
       fichaSheet.hidden = true;
       fichaSheet.getAnimations().forEach((a) => a.cancel());
       allMaskInners.forEach((el) => {
