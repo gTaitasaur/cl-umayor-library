@@ -183,6 +183,10 @@ const initialBook = booksPayload[initialIndex];
         <feFuncA type="linear" slope="0.075" intercept="0" />
       </feComponentTransfer>
     </filter>
+
+    <pattern id="paper-grain-pattern" width="180" height="180" patternUnits="userSpaceOnUse">
+      <rect width="180" height="180" filter="url(#paper-tooth-filter)" />
+    </pattern>
   </defs>
 
   {editorialCoverSpecs.map((spec) => (
@@ -313,9 +317,9 @@ const initialBook = booksPayload[initialIndex];
 </svg>
 
 <div class="stage-root" id="stage-root">
-  <!-- Textura de grano de papel impreso -->
+  <!-- Textura de grano de papel impreso (mosaico de 180x180 para evitar recalcular feTurbulence a pantalla completa) -->
   <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
-    <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
+    <rect width="100%" height="100%" fill="url(#paper-grain-pattern)"></rect>
   </svg>
 
   <!-- Marcas de registro editorial en las esquinas -->
@@ -696,7 +700,7 @@ const initialBook = booksPayload[initialIndex];
   <div class="ficha-sheet-light-overlay" id="ficha-sheet-light-overlay" aria-hidden="true"></div>
 
   <svg class="paper-grain-layer" aria-hidden="true" width="100%" height="100%">
-    <rect width="100%" height="100%" filter="url(#paper-tooth-filter)"></rect>
+    <rect width="100%" height="100%" fill="url(#paper-grain-pattern)"></rect>
   </svg>
 
   <!-- Rayado de tarjeta catalográfica visible mientras la ficha entra o sale del ejemplar 3D -->
@@ -3804,6 +3808,8 @@ const initialBook = booksPayload[initialIndex];
     totalSpanPx = sumCycle * COPIES;
     avgPitchPx = sumCycle / Math.max(N, 1);
     syncYearIndicator(activeBookIndex, false);
+    wasShelfSettled = false;
+    startLoop();
   }
 
   // ================= ESTADO DEL MOTOR DE FÍSICA Y CURSOR =================
@@ -3813,6 +3819,8 @@ const initialBook = booksPayload[initialIndex];
   let targetPos = N + initialBookIdx;
   let velocity = 0;
   let activeBookIndex = initialBookIdx;
+  let wasShelfSettled = false;
+  let wasCursorSettled = false;
 
   // Arrastre (Drag)
   let isDragging = false;
@@ -3915,6 +3923,7 @@ const initialBook = booksPayload[initialIndex];
           const scaleX = btnRect.width / 64;
           const targetTransform = `translateX(${offsetX.toFixed(1)}px) scaleX(${scaleX.toFixed(4)})`;
           if (animate && !prefersReducedMotion) {
+            yearActiveBar.getAnimations().forEach((a) => a.cancel());
             yearActiveBar.animate(
               [
                 { transform: yearActiveBar.style.transform || targetTransform },
@@ -3972,9 +3981,13 @@ const initialBook = booksPayload[initialIndex];
     if (cursorMode === nextMode) return;
     const prevMode = cursorMode;
     cursorMode = nextMode;
+    wasCursorSettled = false;
+    startLoop();
 
     if (nextMode === 'cover') {
       const dur = prefersReducedMotion ? 180 : 340;
+      cursorLine1.getAnimations().forEach((a) => a.cancel());
+      cursorLine2.getAnimations().forEach((a) => a.cancel());
       cursorLine1.animate(
         [{ transform: 'translateY(115%)' }, { transform: 'translateY(0%)' }],
         { duration: dur, delay: 45, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
@@ -3985,6 +3998,8 @@ const initialBook = booksPayload[initialIndex];
       );
     } else if (prevMode === 'cover') {
       const dur = prefersReducedMotion ? 140 : 220;
+      cursorLine1.getAnimations().forEach((a) => a.cancel());
+      cursorLine2.getAnimations().forEach((a) => a.cancel());
       cursorLine1.animate(
         [{ transform: 'translateY(0%)' }, { transform: 'translateY(-115%)' }],
         { duration: dur, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' }
@@ -3999,6 +4014,8 @@ const initialBook = booksPayload[initialIndex];
   // ================= NAVEGACIÓN DE LA ESTANTERÍA =================
   function stepBy(delta: number) {
     targetPos = Math.round(targetPos + delta);
+    wasShelfSettled = false;
+    startLoop();
   }
 
   function jumpToBookIndex(destBookIdx: number) {
@@ -4007,6 +4024,8 @@ const initialBook = booksPayload[initialIndex];
     if (diff > N / 2) diff -= N;
     if (diff < -N / 2) diff += N;
     targetPos = Math.round(targetPos) + diff;
+    wasShelfSettled = false;
+    startLoop();
   }
 
   function findActiveVirtualSlot(): VirtualSlot {
@@ -4628,7 +4647,8 @@ const initialBook = booksPayload[initialIndex];
     fichaPoseRotX = 3.2;
     fichaPoseRotY = -19.5;
     fichaPoseRotZ = 4.5;
-    renderShelfFrame(0.016);
+    wasShelfSettled = false;
+    renderShelfFrame(0.016, true);
   }
 
   function openFicha(invoker?: HTMLElement) {
@@ -4780,9 +4800,13 @@ const initialBook = booksPayload[initialIndex];
     // FASE 1 (3D): El ejemplar muestra el canto de sus páginas, la ficha sale desde entre medio
     // de las páginas (z = 0), pasa al frente y se posiciona sobre la portada (z = +t/2 + 6px)
     fichaBookPose = 'pages';
+    wasShelfSettled = false;
+    startLoop();
     window.setTimeout(() => {
       if (isFichaOpen) {
         fichaBookPose = 'cover';
+        wasShelfSettled = false;
+        startLoop();
       }
     }, 420);
 
@@ -5072,6 +5096,8 @@ const initialBook = booksPayload[initialIndex];
       // FASE 2 (3D): Desde la portada, la ficha sale hacia el canto derecho y vuelve a meterse
       // entre medio de las páginas del libro (z = 0, entre portada y contraportada)
       fichaBookPose = 'pages';
+      wasShelfSettled = false;
+      startLoop();
       card3d.getAnimations().forEach((a) => a.cancel());
       card3d.classList.add('is-active');
       card3d.style.visibility = 'visible';
@@ -5118,6 +5144,8 @@ const initialBook = booksPayload[initialIndex];
         card3d.classList.remove('is-active');
         fichaBookPose = 'idle';
         currentTiltX = -3.6;
+        wasShelfSettled = false;
+        startLoop();
         finalizeCloseCleanup();
       };
     };
@@ -5253,6 +5281,8 @@ const initialBook = booksPayload[initialIndex];
       openFicha(slot.el);
     } else {
       targetPos = Math.round(currentPos + d);
+      wasShelfSettled = false;
+      startLoop();
     }
   }
 
@@ -5305,6 +5335,9 @@ const initialBook = booksPayload[initialIndex];
     lastPointerX = e.clientX;
     lastPointerTime = performance.now();
     pointerVelocityIdx = 0;
+    wasShelfSettled = false;
+    wasCursorSettled = false;
+    startLoop();
   });
 
   window.addEventListener(
@@ -5313,6 +5346,8 @@ const initialBook = booksPayload[initialIndex];
       mouseX = e.clientX;
       mouseY = e.clientY;
       pointerSeen = true;
+      wasCursorSettled = false;
+      startLoop();
 
       if (isDragging && e.pointerId === activePointerId) {
         const dx = e.clientX - dragStartX;
@@ -5330,6 +5365,7 @@ const initialBook = booksPayload[initialIndex];
 
         if (pointerMovedPx > 4) {
           targetPos = dragStartPos - dx / pxPerBook;
+          wasShelfSettled = false;
         }
       }
 
@@ -5383,6 +5419,7 @@ const initialBook = booksPayload[initialIndex];
             const tiltFactor = prefersReducedMotion ? 0.25 : 1;
             targetTiltY = Math.max(-1, Math.min(1, nx)) * 9.5 * tiltFactor;
             targetTiltX = Math.max(-1, Math.min(1, -ny)) * 7.5 * tiltFactor;
+            wasShelfSettled = false;
           }
           return;
         }
@@ -5408,6 +5445,9 @@ const initialBook = booksPayload[initialIndex];
       const momentum = Math.max(-4.5, Math.min(4.5, pointerVelocityIdx * 0.16));
       targetPos = Math.round(targetPos + momentum);
     }
+    wasShelfSettled = false;
+    wasCursorSettled = false;
+    startLoop();
   }
 
   window.addEventListener('pointerup', finishDrag);
@@ -5422,12 +5462,16 @@ const initialBook = booksPayload[initialIndex];
       const dominantDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       const normalized = Math.max(-140, Math.min(140, dominantDelta));
       targetPos += normalized / 210;
+      wasShelfSettled = false;
+      startLoop();
 
       if (wheelSnapTimer !== null) {
         window.clearTimeout(wheelSnapTimer);
       }
       wheelSnapTimer = window.setTimeout(() => {
         targetPos = Math.round(targetPos);
+        wasShelfSettled = false;
+        startLoop();
       }, 135);
     },
     { passive: false }
@@ -5498,6 +5542,7 @@ const initialBook = booksPayload[initialIndex];
   // Botón de acción circular: respuesta elástica en hover vía WAAPI
   openFichaBtn.addEventListener('pointerenter', () => {
     if (prefersReducedMotion) return;
+    openFichaBtn.getAnimations().forEach((a) => a.cancel());
     openFichaBtn.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.09)' }], {
       duration: 240,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -5506,6 +5551,7 @@ const initialBook = booksPayload[initialIndex];
   });
   openFichaBtn.addEventListener('pointerleave', () => {
     if (prefersReducedMotion) return;
+    openFichaBtn.getAnimations().forEach((a) => a.cancel());
     openFichaBtn.animate([{ transform: 'scale(1.09)' }, { transform: 'scale(1)' }], {
       duration: 240,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -5513,14 +5559,14 @@ const initialBook = booksPayload[initialIndex];
     });
   });
 
-  // ================= ÚNICO BUCLE MAESTRO requestAnimationFrame =================
+  // ================= ÚNICO BUCLE MAESTRO requestAnimationFrame (CON REPOSO AUTOMÁTICO) =================
   let rafId: number | null = null;
   let isLoopRunning = false;
   let isShelfRenderingActive = true;
   let lastFrameTime = performance.now();
 
   function startLoop() {
-    if (isLoopRunning) return;
+    if (isLoopRunning || document.hidden) return;
     isLoopRunning = true;
     lastFrameTime = performance.now();
     rafId = requestAnimationFrame(masterLoop);
@@ -5534,7 +5580,7 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
-  function renderShelfFrame(dt: number) {
+  function renderShelfFrame(dt: number, forceRender = false): boolean {
     // 1. Física de resorte de la estantería
     const stiffness = isDragging ? 310 : prefersReducedMotion ? 280 : 155;
     const damping = isDragging ? 32 : prefersReducedMotion ? 34 : 21.5;
@@ -5544,7 +5590,8 @@ const initialBook = booksPayload[initialIndex];
     velocity += springForce * dt;
     currentPos += velocity * dt;
 
-    if (!isDragging && Math.abs(targetPos - currentPos) < 0.0004 && Math.abs(velocity) < 0.0004) {
+    const posSettled = !isDragging && Math.abs(targetPos - currentPos) < 0.0004 && Math.abs(velocity) < 0.0004;
+    if (posSettled) {
       currentPos = targetPos;
       velocity = 0;
     }
@@ -5560,6 +5607,13 @@ const initialBook = booksPayload[initialIndex];
     const tiltLerp = 1 - Math.exp(-14 * dt);
     currentTiltX += (targetTiltX - currentTiltX) * tiltLerp;
     currentTiltY += (targetTiltY - currentTiltY) * tiltLerp;
+
+    const tiltSettled =
+      Math.abs(targetTiltX - currentTiltX) < 0.004 && Math.abs(targetTiltY - currentTiltY) < 0.004;
+    if (tiltSettled) {
+      currentTiltX = targetTiltX;
+      currentTiltY = targetTiltY;
+    }
 
     // Pose 3D del ejemplar central según la fase de la ficha:
     // - 'pages': gira mostrando el canto derecho de las páginas mientras la ficha sale o entra entre ellas
@@ -5578,6 +5632,28 @@ const initialBook = booksPayload[initialIndex];
     fichaPoseRotX += (targetPoseRotX - fichaPoseRotX) * poseLerp;
     fichaPoseRotY += (targetPoseRotY - fichaPoseRotY) * poseLerp;
     fichaPoseRotZ += (targetPoseRotZ - fichaPoseRotZ) * poseLerp;
+
+    const poseSettled =
+      Math.abs(targetPoseX - fichaPoseX) < 0.02 &&
+      Math.abs(targetPoseY - fichaPoseY) < 0.02 &&
+      Math.abs(targetPoseZ - fichaPoseZ) < 0.02 &&
+      Math.abs(targetPoseRotX - fichaPoseRotX) < 0.01 &&
+      Math.abs(targetPoseRotY - fichaPoseRotY) < 0.01 &&
+      Math.abs(targetPoseRotZ - fichaPoseRotZ) < 0.01;
+    if (poseSettled) {
+      fichaPoseX = targetPoseX;
+      fichaPoseY = targetPoseY;
+      fichaPoseZ = targetPoseZ;
+      fichaPoseRotX = targetPoseRotX;
+      fichaPoseRotY = targetPoseRotY;
+      fichaPoseRotZ = targetPoseRotZ;
+    }
+
+    const allSettled = posSettled && tiltSettled && poseSettled;
+    if (allSettled && wasShelfSettled && !forceRender) {
+      return false;
+    }
+    wasShelfSettled = allSettled;
 
     // 3. Acordeón trigonométrico 3D e iluminación física de lomos
     const posMod = ((currentPos % M) + M) % M;
@@ -5627,16 +5703,16 @@ const initialBook = booksPayload[initialIndex];
 
       const x = xLinear + primaryPush + harmonicRipple + open * fichaPoseX;
 
-      // Descarte (culling) de copias fuera de pantalla para mantener 120fps constantes
+      // Descarte (culling) con display: none en copias fuera de pantalla para liberar capas GPU y VRAM
       if (Math.abs(x) > cullLimitPx) {
         if (slot.lastVisible) {
-          slot.el.style.visibility = 'hidden';
+          slot.el.style.display = 'none';
           slot.lastVisible = false;
         }
         continue;
       }
       if (!slot.lastVisible) {
-        slot.el.style.visibility = 'visible';
+        slot.el.style.display = 'block';
         slot.lastVisible = true;
       }
 
@@ -5719,27 +5795,50 @@ const initialBook = booksPayload[initialIndex];
     const shadowScaleX = 0.35 + centerOpenFactor * 0.72;
     const shadowScaleY = 0.56 + centerOpenFactor * 0.54;
     castShadow.style.transform = `translate3d(${(currentTiltY * 0.7).toFixed(1)}px, 0, 0) rotate(-4.5deg) scale(${shadowScaleX.toFixed(3)}, ${shadowScaleY.toFixed(3)})`;
+    return !allSettled;
   }
 
-  // 4. Cursor personalizado con suavizado exponencial: se ejecuta continuamente en RAF para seguimiento fluido a 60/120fps
-  function updateCursor(dt: number) {
-    if (!hasFinePointer || !pointerSeen) return;
-
-    const cursorAlpha = 1 - Math.exp(-20 * dt);
-    cursorX += (mouseX - cursorX) * cursorAlpha;
-    cursorY += (mouseY - cursorY) * cursorAlpha;
+  // 4. Cursor personalizado con suavizado exponencial: se detiene automáticamente al alcanzar el puntero
+  function updateCursor(dt: number): boolean {
+    if (!hasFinePointer || !pointerSeen) return false;
 
     const desiredRing =
       cursorMode === 'cover' ? 0 : cursorMode === 'compact' ? (isDragging ? 0.66 : 0.44) : 1;
     const desiredCobalt = cursorMode === 'cover' ? 1 : 0;
 
+    const cursorAlpha = 1 - Math.exp(-20 * dt);
+    cursorX += (mouseX - cursorX) * cursorAlpha;
+    cursorY += (mouseY - cursorY) * cursorAlpha;
+
     const morphAlpha = 1 - Math.exp(-16 * dt);
     ringScale += (desiredRing - ringScale) * morphAlpha;
     cobaltScale += (desiredCobalt - cobaltScale) * morphAlpha;
 
+    const settled =
+      Math.abs(mouseX - cursorX) < 0.06 &&
+      Math.abs(mouseY - cursorY) < 0.06 &&
+      Math.abs(desiredRing - ringScale) < 0.002 &&
+      Math.abs(desiredCobalt - cobaltScale) < 0.002;
+
+    if (settled) {
+      if (!wasCursorSettled) {
+        cursorX = mouseX;
+        cursorY = mouseY;
+        ringScale = desiredRing;
+        cobaltScale = desiredCobalt;
+        customCursor.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${cursorY.toFixed(2)}px, 0)`;
+        cursorRing.style.transform = `scale(${ringScale.toFixed(3)})`;
+        cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
+        wasCursorSettled = true;
+      }
+      return false;
+    }
+
+    wasCursorSettled = false;
     customCursor.style.transform = `translate3d(${cursorX.toFixed(2)}px, ${cursorY.toFixed(2)}px, 0)`;
     cursorRing.style.transform = `scale(${ringScale.toFixed(3)})`;
     cursorCobaltDisk.style.transform = `scale(${cobaltScale.toFixed(3)})`;
+    return true;
   }
 
   function masterLoop(now: number) {
@@ -5748,19 +5847,24 @@ const initialBook = booksPayload[initialIndex];
     const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.05);
     lastFrameTime = now;
 
-    // Solo se calcula la estantería 3D (33 libros, matrices y reflejos) si la estantería está activa
-    if (isShelfRenderingActive) {
-      renderShelfFrame(dt);
-    }
+    // Solo se calcula la estantería 3D si está activa y aún no ha convergido al reposo
+    const shelfActive = isShelfRenderingActive ? renderShelfFrame(dt) : false;
 
-    // El cursor personalizado se actualiza siempre de forma ultraligera (~0.01ms)
-    updateCursor(dt);
+    // El cursor se actualiza mientras se mueve el ratón o cambia de escala
+    const cursorActive = updateCursor(dt);
+
+    // Modo de reposo automático: cuando ni la estantería ni el cursor se mueven, detenemos requestAnimationFrame
+    // reduciendo a 0% el uso de CPU/GPU en inactividad o en segundo plano.
+    if (!shelfActive && !cursorActive && !isFichaAnimating) {
+      stopLoop();
+      return;
+    }
 
     rafId = requestAnimationFrame(masterLoop);
   }
 
-  // Suspender el ciclo de animación cuando la pestaña esté oculta para no consumir CPU/GPU
-  // y reanudarlo con un cuadro de tiempo limpio al volver (evita congelamientos en Firefox/Chromium).
+  // Suspender el ciclo de animación cuando la pestaña o ventana pase a segundo plano
+  // y reanudarlo limpiamente sin trabajo acumulado al volver.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       stopLoop();
@@ -5770,6 +5874,9 @@ const initialBook = booksPayload[initialIndex];
       targetTiltY = 0;
       setCursorMode('default');
     } else {
+      lastFrameTime = performance.now();
+      wasShelfSettled = false;
+      wasCursorSettled = false;
       startLoop();
     }
   });
@@ -5780,6 +5887,14 @@ const initialBook = booksPayload[initialIndex];
     targetTiltX = 0;
     targetTiltY = 0;
     setCursorMode('default');
+    stopLoop();
+  });
+
+  window.addEventListener('focus', () => {
+    lastFrameTime = performance.now();
+    wasShelfSettled = false;
+    wasCursorSettled = false;
+    startLoop();
   });
 
   measureGeometry();
