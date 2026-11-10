@@ -453,6 +453,20 @@ const initialBook = booksPayload[initialIndex];
       <!-- Sombra proyectada sobre el papel bajo el ejemplar activo -->
       <div class="active-cast-shadow" id="active-cast-shadow" aria-hidden="true"></div>
 
+      <!-- Componente único reutilizable de Ficha Catalográfica 3D (O(1) en el DOM, se monta dinámicamente en el libro activo) -->
+      <span class="book-face book-catalog-card" id="shared-catalog-card-3d" aria-hidden="true">
+        <span class="catalog-card-band"></span>
+        <span class="catalog-card-rules">
+          <span class="catalog-card-rule catalog-card-rule--crimson"></span>
+          <span class="catalog-card-rule"></span>
+          <span class="catalog-card-rule"></span>
+          <span class="catalog-card-rule"></span>
+          <span class="catalog-card-rule"></span>
+          <span class="catalog-card-rule catalog-card-rule--short"></span>
+        </span>
+        <span class="catalog-card-hole"></span>
+      </span>
+
       <div class="shelf-track" id="shelf-track">
         {
           VIRTUAL_COPIES.map((copyIdx) =>
@@ -553,20 +567,6 @@ const initialBook = booksPayload[initialIndex];
 
                     {/* 6. Contraportada en Tela Editorial */}
                     <span class="book-face book-face--back" aria-hidden="true" />
-
-                    {/* Ficha catalográfica 3D alojada entre las páginas del ejemplar */}
-                    <span class="book-face book-catalog-card" aria-hidden="true">
-                      <span class="catalog-card-band" />
-                      <span class="catalog-card-rules">
-                        <span class="catalog-card-rule catalog-card-rule--crimson" />
-                        <span class="catalog-card-rule" />
-                        <span class="catalog-card-rule" />
-                        <span class="catalog-card-rule" />
-                        <span class="catalog-card-rule" />
-                        <span class="catalog-card-rule catalog-card-rule--short" />
-                      </span>
-                      <span class="catalog-card-hole" />
-                    </span>
 
                     {/* Sellado interior del lomo contra fugas de luz en ángulos rasantes */}
                     <span class="book-spine-backer" aria-hidden="true" />
@@ -3620,7 +3620,6 @@ const initialBook = booksPayload[initialIndex];
     book3d: HTMLElement;
     frontFace: HTMLElement;
     spineFace: HTMLElement;
-    catalogCard: HTMLElement;
     reflWrap: HTMLElement;
     reflFront: HTMLElement;
     reflSpine: HTMLElement;
@@ -3654,6 +3653,7 @@ const initialBook = booksPayload[initialIndex];
   const shelfStage = document.getElementById('shelf-stage') as HTMLElement;
   const sizeProbe = document.getElementById('book-size-probe') as HTMLElement;
   const castShadow = document.getElementById('active-cast-shadow') as HTMLElement;
+  const sharedCatalogCard3d = document.getElementById('shared-catalog-card-3d') as HTMLElement;
 
   const btnPrev = document.getElementById('btn-prev') as HTMLButtonElement;
   const btnNext = document.getElementById('btn-next') as HTMLButtonElement;
@@ -3744,7 +3744,6 @@ const initialBook = booksPayload[initialIndex];
     book3d: el.querySelector('.book-3d') as HTMLElement,
     frontFace: el.querySelector('.book-face--front') as HTMLElement,
     spineFace: el.querySelector('.book-face--spine') as HTMLElement,
-    catalogCard: el.querySelector('.book-catalog-card') as HTMLElement,
     reflWrap: el.querySelector('.book-refl-wrap') as HTMLElement,
     reflFront: el.querySelector('.book-refl--front') as HTMLElement,
     reflSpine: el.querySelector('.book-refl--spine') as HTMLElement,
@@ -3757,6 +3756,14 @@ const initialBook = booksPayload[initialIndex];
     lastSpineDisp: 'block',
     lastSpineOp: '0.50',
   }));
+
+  // Monta la instancia única de la ficha catalográfica 3D dentro del contenedor .book-3d del libro activo
+  function attachCatalogCardToSlot(slot: VirtualSlot): HTMLElement {
+    if (sharedCatalogCard3d.parentElement !== slot.book3d) {
+      slot.book3d.appendChild(sharedCatalogCard3d);
+    }
+    return sharedCatalogCard3d;
+  }
 
   // ================= GEOMETRÍA FÍSICA ACUMULADA =================
   let viewportW = window.innerWidth;
@@ -4607,6 +4614,23 @@ const initialBook = booksPayload[initialIndex];
     }
   }
 
+  // Sincroniza instantáneamente la estantería 3D y la pose frontal ('cover') del libro activo
+  // para que el libro actual esté centrado y abierto antes de medir o plegar la ficha.
+  function snapShelfToCoverPose() {
+    currentPos = targetPos;
+    velocity = 0;
+    currentTiltX = 0;
+    currentTiltY = 0;
+    fichaBookPose = 'cover';
+    fichaPoseX = 0;
+    fichaPoseY = 4;
+    fichaPoseZ = 28;
+    fichaPoseRotX = 3.2;
+    fichaPoseRotY = -19.5;
+    fichaPoseRotZ = 4.5;
+    renderShelfFrame(0.016);
+  }
+
   function openFicha(invoker?: HTMLElement) {
     if (isFichaOpen || isFichaAnimating) return;
     isFichaAnimating = true;
@@ -4624,15 +4648,16 @@ const initialBook = booksPayload[initialIndex];
     fichaScrollCol.scrollTop = 0;
 
     const activeSlot = findActiveVirtualSlot();
-    const card3d = activeSlot.catalogCard;
+    const card3d = attachCatalogCardToSlot(activeSlot);
     const slideX = (coverW * 0.96).toFixed(1);
     const bookThicknessPx = Math.round(activeSlot.rawThickness * thicknessScale);
     const frontZ = (bookThicknessPx * 0.5 + 6).toFixed(1);
 
     const startSheetExpansion = () => {
+      snapShelfToCoverPose();
       const { bx, by, sx0, sy0 } = computeCoverCardRect(activeSlot);
 
-      // Ocultar la tarjeta 3D y pausar el renderizado 3D de los 33 libros justo cuando el pliego toma el relevo,
+      // Ocultar la tarjeta 3D única y pausar el renderizado 3D de la estantería justo cuando el pliego toma el relevo,
       // dedicando el 100% de la GPU/CPU a la apertura a pantalla completa y al trazo caligráfico.
       card3d.getAnimations().forEach((a) => a.cancel());
       card3d.style.visibility = 'hidden';
@@ -4919,10 +4944,12 @@ const initialBook = booksPayload[initialIndex];
       );
     }
 
-    currentPos = targetPos;
-    velocity = 0;
+    // Antes de iniciar el plegado del pliego (mientras cubre el 100% de la pantalla),
+    // sincronizamos la estantería 3D al libro actualmente seleccionado en pose 'cover' y
+    // montamos la tarjeta 3D única en dicho ejemplar para que el cierre sea 100% continuo hacia él.
+    snapShelfToCoverPose();
     const activeSlot = findActiveVirtualSlot();
-    const card3d = activeSlot.catalogCard;
+    const card3d = attachCatalogCardToSlot(activeSlot);
     const slideX = (coverW * 0.96).toFixed(1);
     const bookThicknessPx = Math.round(activeSlot.rawThickness * thicknessScale);
     const frontZ = (bookThicknessPx * 0.5 + 6).toFixed(1);
@@ -4930,7 +4957,7 @@ const initialBook = booksPayload[initialIndex];
 
     fichaSheet.classList.add('is-scaling');
 
-    // FASE 1: El pliego abierto se pliega hasta posarse exactamente sobre la portada del ejemplar 3D
+    // FASE 1: El pliego abierto se pliega hasta posarse exactamente sobre la portada del ejemplar 3D actual
     const foldAnim = fichaSheet.animate(
       prefersReducedMotion
         ? [
@@ -4954,7 +4981,7 @@ const initialBook = booksPayload[initialIndex];
               offset: 0.42,
             },
             {
-              // Aterriza posada sobre la portada del ejemplar
+              // Aterriza posada sobre la portada del ejemplar actual
               transform: `translate3d(${bx.toFixed(1)}px, ${by.toFixed(1)}px, 0) rotate(0deg) scale(${sx0.toFixed(3)}, ${sy0.toFixed(3)})`,
               opacity: 1,
             },
@@ -4987,11 +5014,8 @@ const initialBook = booksPayload[initialIndex];
     };
 
     foldAnim.onfinish = () => {
-      // Sincronizar la escena 3D y reactivar el renderizado de la estantería para la fase 3D de guardado
-      currentPos = targetPos;
-      velocity = 0;
+      // Reactivar el bucle 3D para que el ejemplar actual gire hacia 'pages' mientras guarda la tarjeta
       isShelfRenderingActive = true;
-      renderShelfFrame(0.016);
 
       fichaSheet.classList.remove('is-scaling');
       fichaSheet.hidden = true;
@@ -5102,8 +5126,7 @@ const initialBook = booksPayload[initialIndex];
   function switchBookInsideFicha(delta: number) {
     if (!isFichaOpen || isFichaAnimating) return;
     stepBy(delta);
-    currentPos = targetPos;
-    velocity = 0;
+    snapShelfToCoverPose();
     const nextIdx = (((Math.round(targetPos) % N) + N) % N);
     updateActiveBookUI(nextIdx, delta);
     populateFichaDOM(nextIdx);
